@@ -1,0 +1,78 @@
+:root {
+	--nexus-brand: #0f4c81;
+	--nexus-brand-accent: #2f80c3;
+}
+
+.app-sidebar {
+	--lte-sidebar-bg: #123047;
+}
+
+.brand-mark {
+	display: inline-grid;
+	place-items: center;
+	width: 2rem;
+	height: 2rem;
+	margin-right: .55rem;
+	border-radius: .55rem;
+	background: linear-gradient(135deg, var(--nexus-brand-accent), #65b5df);
+	color: #fff;
+	font-weight: 800;
+}
+
+.sidebar-menu .nav-link.disabled {
+	opacity: .62;
+}
+
+.app-content {
+	padding-bottom: 2rem;
+}
+
+.card {
+	--bs-card-border-color: color-mix(in srgb, var(--bs-border-color) 72%, transparent);
+}
+
+.dashboard-chart {
+	position: relative;
+	height: 19rem;
+}
+
+.snapshot-value {
+	font-size: clamp(1.75rem, 3vw, 2.5rem);
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.reference-card {
+	transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.reference-card:hover {
+	transform: translateY(-2px);
+}
+
+.reference-card-icon {
+	display: inline-grid;
+	place-items: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: .65rem;
+	background: color-mix(in srgb, var(--bs-primary) 14%, transparent);
+	color: var(--bs-primary);
+	font-size: 1.2rem;
+}
+
+@media (max-width: 575.98px) {
+	.app-content-header .breadcrumb {
+		float: none !important;
+		margin-top: .75rem;
+	}
+}
+
+.login-page {
+	min-height: 100vh;
+	padding: 1rem;
+}
+
+.login-box {
+	width: min(400px, 100%);
+}

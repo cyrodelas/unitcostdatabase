@@ -1,0 +1,5 @@
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<div class="row justify-content-center"><div class="col-xl-8"><div class="card shadow-sm"><div class="card-body">
+<?php if($form_error):?><div class="alert alert-danger"><?=html_escape($form_error)?></div><?php endif;?>
+<div class="alert alert-info"><strong>CSV:</strong> requires item_description and quantity headers; item reference, section, UOM, rate, amount, and notes are optional. <strong>XLSX:</strong> the system identifies the most detailed BOQ worksheet, detects its header row, preserves section hierarchy, derives total unit rates, and retains unpriced owner-supplied or trade-contractor lines. Maximum 10 MB and 10,000 normalized rows.</div>
+<?=form_open_multipart(current_url())?><label class="form-label" for="boq_file">CSV or XLSX file *</label><input class="form-control" type="file" id="boq_file" name="boq_file" accept=".csv,.xlsx" required><button class="btn btn-primary mt-3">Upload and Validate</button> <a class="btn btn-outline-secondary mt-3" href="<?=site_url('boq/'.$boq->boq_id)?>">Cancel</a><?=form_close()?></div></div></div></div>

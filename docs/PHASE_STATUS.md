@@ -1,0 +1,183 @@
+# Current Phase
+Phase 22 — Crew Productivity Management
+
+## Completed
+- Added governed day-based crew productivity create/edit on current Draft Standard Cost Item revisions with crew, output, duration, source/reference, effective date, benchmark, and notes validation.
+- Added preview-and-apply crew expansion that transactionally replaces labor rows using member quantity × duration days ÷ output quantity and preserves member/rate/formula snapshots.
+- Added explicit Legacy Manual, Manual, and Crew Derived modes; crew-derived labor editing is locked until deliberate Manual conversion, preventing duplicate labor costing.
+- Added selected-costing and stale/reapply states; productivity or crew changes mark affected crew-derived build-ups stale.
+- Extended successor-revision cloning to preserve remapped productivity, labor build-up, and derivation lineage.
+- Completed the Phase 21 live data/schema readiness audit for BOQ extraction, mapping labels, crews, productivity, labor/material associations, revisions, and permissions.
+- Defined the governed crew-derived labor formula, manual/crew costing modes, lineage snapshots, stale/reapply rules, and double-counting prevention.
+- Defined the guided Draft Standard Cost Item creation/build-up scope using materials plus manual or crew-derived labor, equipment, and allowances.
+- Selected a private Python service/worker architecture with CodeIgniter retaining authoritative RBAC, validation, workflow, persistence, and audit.
+- Documented ML datasets, labels, evaluation/promotion gates, permission/schema proposals, safety boundaries, and the Phase 22–30 roadmap in `docs/ML_CREW_PRODUCTIVITY_ROADMAP.md`.
+- Created the authorized normalized `boq_header`, `boq_item`, `boq_import_batch`, and `boq_import_staging` tables.
+- Added searchable BOQ register and project-linked header create/edit/status management.
+- Added Draft/Validated BOQ item create/edit/status management with UOM and arithmetic validation.
+- Added CSV/XLSX uploads with extension, MIME, workbook-structure, 10 MB, and 10,000-row controls.
+- Added row staging, required-field/numeric/UOM/arithmetic validation, batch counters, and error reports.
+- Added atomic import of wholly Ready batches and preserved staging-to-item traceability.
+- Enforced `boq.view` and `boq.manage`; no mapping functionality was added.
+- Reconciled the 12-Aug-2026 updated schema dump without running its destructive `DROP`/`DELETE` statements: added 41 tables, 14 columns, seed/reference data, and valid foreign keys.
+- Expanded Reference Data to 46 CRUD entities, linked catalog cards to CRUD pages, and removed physical table names from the cards.
+- Updated completed Project, Rate, Material, Standard Cost Item, and Trade workflows for the newly governed fields.
+- Added manual BOQ-to-UCD mapping from each BOQ item to exact standard-cost-item revisions.
+- Added candidate management, selected mapping, Proposed/Confirmed/Rejected workflow, replacement/reopen controls, and append-only mapping history.
+- Added mapping register, BOQ progress screen, item search with UOM-match priority, sidebar navigation, BOQ links, and `boq.map` endpoint enforcement.
+- Analyzed two actual contractor BOQs and hardened XLSX import for multi-sheet/header formats, hierarchical descriptions, split pricing, unpriced scope, controlled UOM aliases, source-row traceability, and total reconciliation before mapping.
+- Added read-only historical cost benchmarking by cost item, project, location, period, contractor/vendor, CSI division, and trade.
+- Added UOM/date/validation filters, UOM-and-currency-safe grouping, percentiles, averages/ranges, context coverage, underlying-observation traceability, and single-UOM charts.
+- Added deterministic, explainable standard-item suggestions using term coverage, specificity, phrase, and UOM signals.
+- Added provisional P25–P75 range signals, reference-band confidence scoring, and IQR abnormal-rate detection.
+- Added annual trend presentation that explicitly remains empty when authoritative rate dates are unavailable.
+- Kept intelligence read-only: no candidate, mapping, confidence, keyword, synonym, relation, or master-data records are written.
+- Added a permission-gated suggestion entry point on BOQ mapping items and clear human-review/evidence warnings.
+- Added restrictive dynamic-response security headers and removed the final inline executable/data script so CSP can be enforced without `unsafe-inline` for JavaScript.
+- Denied web access to SQL, project documentation, metadata, PowerShell scripts, and directory listings while preserving application/assets access.
+- Hardened XLSX XML parsing with DTD/entity rejection, network-disabled parsing, generic malformed-XML errors, and existing size/row limits.
+- Added production fail-closed base URL/encryption-key requirements, secure cookies, configurable trusted proxies, error-only production logging, and hidden production backtraces.
+- Completed permission, validation, audit-integrity, query/index, DataTables, upload, and error-handling reviews without inventing schema changes.
+- Added tested backup/checksum automation, an automated release gate, deployment/recovery/security/performance guides, a user guide, and release checklist.
+- Provisioned one forced-password-change account for each previously unassigned built-in role; the existing System Administrator account was unchanged.
+- Added exact-code-confirmed permanent deletion for Draft/Validated BOQs with transactional dependent-record cleanup and generated-upload removal.
+- Added exact-code-confirmed Project deletion only for projects with no BOQs, rate observations, source documents, or metrics.
+- Updated the Standard Cost Item detail view to show the calculated Final Unit Rate in the Enterprise Item card and omit Lifecycle from that card; the complete Material association columns remain available.
+
+## In Progress
+- None.
+
+## Pending
+- Phase 23: guided Standard Cost Item Draft creation and resource assembly.
+- Phases 24–30: ML data foundation, extraction, mapping, model lifecycle, integration, pilot, monitoring, and release.
+- The 17 database view placeholders still require separate explicit drop authorization.
+- Runtime modernization and any universal audit-event schema require separately approved future scope.
+
+## Files Changed
+- `database/phase22_crew_productivity_schema.sql`
+- `application/controllers/Crew_productivity.php`
+- `application/models/Crew_productivity_model.php`
+- `application/views/crew_productivity/*`
+- `application/{config/routes.php,controllers/Unit_rates.php,models/Crew_model.php,models/Governance_model.php,views/unit_rates/view.php}`
+- `docs/ML_CREW_PRODUCTIVITY_ROADMAP.md`
+- `docs/{PROJECT_CONTEXT,PHASE_STATUS,MODULE_MAP,DB_REFERENCE,DECISIONS,CHANGELOG}.md`
+- `.htaccess`
+- `application/core/MY_Controller.php`
+- `application/config/{config,constants}.php`
+- `application/libraries/Boq_import_parser.php`
+- `application/views/layouts/header.php`
+- `application/views/dashboard/index.php`
+- `assets/js/{theme-preload.js,modules/dashboard.js}`
+- `database/backup_nexus_ucd.ps1`
+- `scripts/release_check.ps1`
+- `docs/{SECURITY_REVIEW,PERFORMANCE_AND_INDEX_REVIEW,BACKUP_AND_RECOVERY,DEPLOYMENT,USER_GUIDE,RELEASE_CHECKLIST}.md`
+- `application/controllers/Cost_intelligence.php`
+- `application/models/Cost_intelligence_model.php`
+- `application/views/cost_intelligence/*`
+- `assets/js/modules/cost-intelligence.js`
+- `application/views/boq_mapping/item.php`
+- `docs/COST_INTELLIGENCE.md`
+- `application/controllers/Benchmarking.php`
+- `application/models/Benchmarking_model.php`
+- `application/views/benchmarking/index.php`
+- `assets/js/modules/benchmarking.js`
+- `docs/COST_BENCHMARKING.md`
+- `application/controllers/Boq_mapping.php`
+- `application/models/Boq_mapping_model.php`
+- `application/views/boq_mapping/*`
+- `database/phase17_boq_mapping_schema.sql`
+- `docs/BOQ_MAPPING_SCHEMA.md`
+- `docs/ACTUAL_BOQ_ANALYSIS.md`
+- `database/actual_boq_import_profile.sql`
+- `application/config/reference_data.php`
+- `application/controllers/{References,Materials,Projects,Rates,Standard_cost_items}.php`
+- `application/models/{Reference,Material,Project,Rate,Standard_cost_item}_model.php`
+- `application/views/{references,materials,projects,rates,standard_cost_items}/*`
+- `database/updated_schema_new_tables.sql`
+- `database/updated_schema_core_columns.sql`
+- `application/cache/boq_uploads/index.html`
+- `application/config/routes.php`
+- `application/controllers/Boq.php`
+- `application/libraries/Boq_import_parser.php`
+- `application/models/Boq_model.php`
+- `application/views/boq/*`
+- `application/views/layouts/sidebar.php`
+- `database/phase16_boq_schema.sql`
+- `docs/BOQ_SCHEMA_PROPOSAL.md`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/MODULE_MAP.md`
+- `docs/PHASE_STATUS.md`
+- `docs/DB_REFERENCE.md`
+- `docs/DECISIONS.md`
+- `docs/ROUTES.md`
+- `docs/CHANGELOG.md`
+
+## Database Changes
+- Phase 22 additively created `cost_item_labor_build_up` and `cost_item_labor_derivation`; no existing table or row was dropped, renamed, or recreated.
+- Phase 21 added no tables, columns, indexes, permissions, model artifacts, training records, or business records; all schema items remain proposals for later explicit phases.
+- Phase 20 added no tables, columns, indexes, or persistent business records; live index review found no evidence-backed migration requirement.
+- Phase 19 added no tables, columns, or records; all intelligence endpoints are read-only.
+- Phase 18 added no tables or columns; benchmarking reads authoritative append-only history directly.
+- Added `boq_mapping_candidate`, `boq_item_mapping`, and `boq_item_mapping_history` with validated status/source constraints, stable revision references, cross-item selection protection, indexes, and audit fields.
+- Added non-destructive import-batch profile fields for selected worksheet, source/parsed totals, variance, unpriced count, and normalization notes.
+- Added four authorized, non-destructive BOQ tables with foreign keys, indexes, and check constraints.
+- No existing table was dropped, renamed, or recreated.
+- Verification data was rolled back; all five project/BOQ data tables remain empty.
+- The 17 placeholder tables intended as views were not altered or dropped.
+- Added the updated dump's 41 new base tables and 14 additive columns through `database/updated_schema_new_tables.sql` and `database/updated_schema_core_columns.sql`; existing rows were preserved.
+- Did not invent the absent `ref_standard_item_name` or `ref_uniformat_assembly` targets referenced by the updated dump.
+
+## Tests
+- Phase 22 disposable HTTP integration returned 200 for productivity create, save, preview, apply, stale display, Manual conversion, and resumed manual labor editing; crew-derived direct labor editing returned HTTP 409.
+- Applied crew expansion created three labor and three derivation rows with zero formula variance, then Manual conversion retained the labor rows and removed all derivation rows; all disposable records were removed.
+- A `PROJECT_USER` without `unit_rates.manage` received HTTP 403 for productivity creation; schema checks found no orphan lineage rows, all 309 PHP files passed lint/release checks, and no disposable users/items remained.
+- Phase 21 re-inspected all authoritative BOQ/import/mapping, cost-item resource, crew/productivity, and RBAC table definitions and reconciled the design to existing constraints.
+- Live readiness counts confirmed 537 retained BOQ lines but only one confirmed mapping; 60 crews/124 members have current labor rates, while only 35 of 276 productivity rows identify a crew and none records source/date/benchmark evidence.
+- The Phase 20 release gate passed: all 304 project PHP files linted, health reported OK, required security headers were present, and sensitive repository files returned HTTP 403.
+- Anonymous protected access returned to login; `SYS_ADMIN` loaded dashboard/reference/BOQ/benchmark/intelligence pages with HTTP 200; a `COST_ENGINEER` received HTTP 403 for role and approval pages.
+- Missing-CSRF logout returned HTTP 403, a GET against a mutation returned HTTP 405, and a forced-change account stayed confined to `/account/password`.
+- Production configuration failed closed without required values and loaded with secure cookies plus error logging when configured.
+- XLSX parsing rejected DTD/entity XML and accepted valid XML; both supplied contractor workbooks still produced 537 `BOQ` and 307 `Breakdown` lines.
+- Backup automation produced a 9,041,211-byte SQL dump with matching SHA-256, schema, and procedures; the verification backup and all disposable users were removed.
+- RBAC verification found 35/35 active `SYS_ADMIN` permissions and no orphan role/permission assignments; approval/audit/mapping histories had no orphan rows.
+- Live EXPLAIN checks used BOQ staging/history and location-name indexes; root/login/assets remained available and cache/log directories were writable.
+- All seven new role accounts authenticated successfully, redirected only to `/account/password`, retained exactly one assigned role, and had no failed-login or lockout state.
+- Disposable BOQ deletion returned 405 for GET and 422 for incorrect confirmation, then removed header/item/import/staging/candidate/mapping/history/file records with exact confirmation; the real 537-line BOQ was unchanged.
+- Disposable Project deletion returned 405 for GET, 422 for incorrect confirmation, and 409 when a BOQ dependency existed; the unreferenced project deleted successfully and all test records were removed.
+- Phase 19 dashboard and mapping-suggestion pages returned HTTP 200 for `SYS_ADMIN`; the known Smoke Detector/UOM case returned a High explainable match.
+- A `COST_ENGINEER` without `cost_intelligence.view` received HTTP 403.
+- Before/after counters confirmed zero writes to keyword, synonym, relation, confidence, BOQ mapping, and candidate tables; disposable users were removed.
+- Five classification/UOM/currency groups met the minimum range sample, and the missing dated evidence warning rendered correctly.
+- All 304 project PHP files passed lint; `/health` returned HTTP 200 with database connected.
+- Complete application PHP lint passed for all application files after Phase 18.
+- Default and dimension-filtered benchmarking pages returned HTTP 200 and exposed all 276 historical observations.
+- Mixed-UOM results suppressed the chart with an explanatory warning; selecting `pc` enabled the chart for its 266 comparable observations.
+- Coverage warnings correctly reported the absence of current project/location/date/contractor/currency/validation context.
+- A `PROJECT_USER` without `benchmarking.view` received HTTP 403; disposable accounts were removed.
+- Complete application PHP lint passed for 297 files.
+- Disposable end-to-end verification returned HTTP 200 for the mapping register, BOQ mapping screen, and item mapping screen.
+- Candidate addition, manual selection, confirmation, and history events (`CANDIDATE_ADDED`, `SELECTED`, `CONFIRMED`) were verified against the live database.
+- Rejection and reopen transitions were verified; attempting to disable the currently selected candidate correctly returned HTTP 409.
+- A `boq.view` user without `boq.map` received HTTP 403; all disposable users and verification records were removed.
+- Both supplied workbooks staged as READY with zero invalid rows: 537 lines from `BOQ` and 307 from `Breakdown`; committed lines loaded into mapping screens and were then completely removed.
+- Verified Futura reconciliation within a 0.04 line-rounding tolerance, surfaced the Gensan workbook's 565,582.00 source variance, and confirmed all source UOM variants map to governed UOMs.
+- PHP lint passed for all changed files and the complete application PHP tree.
+- BOQ index and create pages returned HTTP 200 for `SYS_ADMIN`.
+- An `EXEC_VIEWER` received HTTP 403 on BOQ creation.
+- Rollback-only integration verified header/manual-item creation, valid CSV staging, two-row transactional import, invalid-row detection, error counts, and complete data restoration.
+- A generated minimal XLSX workbook verified first-sheet inline-string and numeric-cell parsing.
+- Temporary verification controller/files, authentication changes, and role changes were removed/restored; the administrator remains `SYS_ADMIN`, unlocked, and in its pre-test password state.
+- All reconciled PHP files passed lint; all 46 CRUD configurations matched real tables/columns, and live schema comparison found zero missing non-view columns.
+- New reference CRUD and affected Project, Rate, Material, and Standard Cost Item pages returned HTTP 200 under a disposable administrator account.
+- The 43,768-row Locations reference uses database-backed search and 100-row pagination; its test response fell from 71 MB/38 seconds to about 176 KB/0.4 seconds.
+- A disposable forced-change account remained confined to `account/password`; other protected pages redirected. The account was removed after testing.
+
+## Issues
+- `project_master` is empty, so a project must be created before the first persistent BOQ.
+- PhpSpreadsheet was not installed because Composer reported active security advisories for the PHP 7.4-compatible release; the local parser reads cached values without evaluating spreadsheet formulas.
+- Git CLI and Node/npm are not available on PATH.
+- PHP 7.4/CodeIgniter 3 is a legacy runtime and should be modernized before public internet exposure.
+- The authoritative schema has no universal audit-event table; current governed workflows retain their specific append-only histories.
+
+## Next Recommended Step
+- No further implementation phase is defined. Use `docs/RELEASE_CHECKLIST.md`; any new work requires explicit scope.

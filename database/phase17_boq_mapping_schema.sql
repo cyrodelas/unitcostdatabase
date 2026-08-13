@@ -1,0 +1,63 @@
+CREATE TABLE `boq_mapping_candidate` (
+  `boq_mapping_candidate_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `boq_item_id` bigint(20) unsigned NOT NULL,
+  `cost_item_revision_id` bigint(20) unsigned NOT NULL,
+  `candidate_source` varchar(20) NOT NULL DEFAULT 'MANUAL',
+  `similarity_score` decimal(7,6) DEFAULT NULL,
+  `rank_no` int(10) unsigned DEFAULT NULL,
+  `explanation` text DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_by` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_by` bigint(20) unsigned DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`boq_mapping_candidate_id`),
+  UNIQUE KEY `uq_boq_mapping_candidate_item_revision` (`boq_item_id`,`cost_item_revision_id`),
+  UNIQUE KEY `uq_boq_mapping_candidate_item` (`boq_mapping_candidate_id`,`boq_item_id`),
+  KEY `idx_boq_mapping_candidate_revision` (`cost_item_revision_id`),
+  CONSTRAINT `fk_boq_mapping_candidate_item` FOREIGN KEY (`boq_item_id`) REFERENCES `boq_item` (`boq_item_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_boq_mapping_candidate_revision` FOREIGN KEY (`cost_item_revision_id`) REFERENCES `standard_cost_item_revision` (`cost_item_revision_id`) ON UPDATE CASCADE,
+  CONSTRAINT `chk_boq_mapping_candidate_source` CHECK (`candidate_source` IN ('MANUAL','SYSTEM','AI')),
+  CONSTRAINT `chk_boq_mapping_candidate_score` CHECK (`similarity_score` IS NULL OR (`similarity_score` >= 0 AND `similarity_score` <= 1))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `boq_item_mapping` (
+  `boq_item_mapping_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `boq_item_id` bigint(20) unsigned NOT NULL,
+  `boq_mapping_candidate_id` bigint(20) unsigned NOT NULL,
+  `mapping_status` varchar(20) NOT NULL DEFAULT 'PROPOSED',
+  `mapping_method` varchar(20) NOT NULL DEFAULT 'MANUAL',
+  `mapping_notes` text DEFAULT NULL,
+  `mapped_by` bigint(20) unsigned DEFAULT NULL,
+  `mapped_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `confirmed_by` bigint(20) unsigned DEFAULT NULL,
+  `confirmed_at` datetime DEFAULT NULL,
+  `updated_by` bigint(20) unsigned DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`boq_item_mapping_id`),
+  UNIQUE KEY `uq_boq_item_mapping_item` (`boq_item_id`),
+  KEY `idx_boq_item_mapping_candidate_item` (`boq_mapping_candidate_id`,`boq_item_id`),
+  KEY `idx_boq_item_mapping_status` (`mapping_status`),
+  CONSTRAINT `fk_boq_item_mapping_item` FOREIGN KEY (`boq_item_id`) REFERENCES `boq_item` (`boq_item_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_boq_item_mapping_candidate_item` FOREIGN KEY (`boq_mapping_candidate_id`,`boq_item_id`) REFERENCES `boq_mapping_candidate` (`boq_mapping_candidate_id`,`boq_item_id`) ON UPDATE CASCADE,
+  CONSTRAINT `chk_boq_item_mapping_status` CHECK (`mapping_status` IN ('PROPOSED','CONFIRMED','REJECTED')),
+  CONSTRAINT `chk_boq_item_mapping_method` CHECK (`mapping_method` IN ('MANUAL','SYSTEM_ACCEPTED','AI_ACCEPTED'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `boq_item_mapping_history` (
+  `boq_item_mapping_history_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `boq_item_id` bigint(20) unsigned NOT NULL,
+  `boq_mapping_candidate_id` bigint(20) unsigned DEFAULT NULL,
+  `mapping_action` varchar(30) NOT NULL,
+  `old_status` varchar(20) DEFAULT NULL,
+  `new_status` varchar(20) DEFAULT NULL,
+  `comments` text DEFAULT NULL,
+  `action_by` bigint(20) unsigned DEFAULT NULL,
+  `action_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`boq_item_mapping_history_id`),
+  KEY `idx_boq_mapping_history_item_time` (`boq_item_id`,`action_at`),
+  KEY `idx_boq_mapping_history_candidate` (`boq_mapping_candidate_id`),
+  CONSTRAINT `fk_boq_mapping_history_item` FOREIGN KEY (`boq_item_id`) REFERENCES `boq_item` (`boq_item_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_boq_mapping_history_candidate` FOREIGN KEY (`boq_mapping_candidate_id`) REFERENCES `boq_mapping_candidate` (`boq_mapping_candidate_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `chk_boq_mapping_history_action` CHECK (`mapping_action` IN ('CANDIDATE_ADDED','CANDIDATE_DISABLED','CANDIDATE_RESTORED','SELECTED','REPLACED','CONFIRMED','REJECTED','REOPENED'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
