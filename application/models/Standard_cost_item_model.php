@@ -5,19 +5,23 @@ class Standard_cost_item_model extends CI_Model
 {
 	public function all_current()
 	{
-		return $this->db
-			->select('i.cost_item_id, i.cost_item_uid, i.lifecycle_status, r.cost_item_revision_id, r.revision_no, r.enterprise_cost_code, r.standard_item_name, r.revision_status, r.coding_status, d.division_code, d.division_name, t.trade_name, u.uom_code, s.specification_code, (SELECT COUNT(*) FROM cost_item_material cm WHERE cm.cost_item_revision_id = r.cost_item_revision_id) AS material_count, (SELECT COUNT(*) FROM cost_item_labor cl WHERE cl.cost_item_revision_id = r.cost_item_revision_id) AS labor_count, (SELECT COUNT(*) FROM cost_item_equipment ce WHERE ce.cost_item_revision_id = r.cost_item_revision_id) AS equipment_count', FALSE)
+		$items = $this->db
+			->select('i.cost_item_id, i.cost_item_uid, i.lifecycle_status, r.cost_item_revision_id, r.revision_no, r.enterprise_cost_code, r.standard_item_name, r.standard_description, r.work_type, r.strength_grade, r.size_dimension, r.application_element, r.finish_condition, r.revision_status, r.coding_status, pt.project_type_code, pt.project_type_name, pt.project_type_short, ms.market_segment_code, ms.market_segment_name, d.division_code, d.division_name, t.trade_name, u.uom_code, s.specification_code, ac.class_name AS attribute_class_name, (SELECT COUNT(*) FROM cost_item_material cm WHERE cm.cost_item_revision_id = r.cost_item_revision_id) AS material_count, (SELECT COUNT(*) FROM cost_item_labor cl WHERE cl.cost_item_revision_id = r.cost_item_revision_id) AS labor_count, (SELECT COUNT(*) FROM cost_item_equipment ce WHERE ce.cost_item_revision_id = r.cost_item_revision_id) AS equipment_count', FALSE)
 			->from('standard_cost_item i')->join('standard_cost_item_revision r', 'r.cost_item_id = i.cost_item_id AND r.is_current = 1')
+			->join('ref_project_type pt', 'pt.project_type_id = r.project_type_id')->join('ref_market_segment ms', 'ms.market_segment_id = r.market_segment_id')
 			->join('ref_csi_division d', 'd.division_id = r.division_id', 'left')->join('ref_trade t', 't.trade_id = r.trade_id', 'left')
-			->join('ref_uom u', 'u.uom_id = r.uom_id', 'left')->join('ref_specification s', 's.specification_id = r.specification_id', 'left')
+			->join('ref_uom u', 'u.uom_id = r.uom_id', 'left')->join('ref_specification s', 's.specification_id = r.specification_id', 'left')->join('ref_attribute_subject_class ac', 'ac.attribute_subject_class_id = r.attribute_subject_class_id', 'left')
 			->order_by('i.lifecycle_status', 'ASC')->order_by('r.enterprise_cost_code')->get()->result();
+		if(!$items)return array();$revision_ids=array_map('intval',array_column($items,'cost_item_revision_id'));$id_list=implode(',',$revision_ids);$rate_sql="SELECT r.cost_item_revision_id,COALESCE(m.total,0)+COALESCE(l.total,0)+COALESCE(a.total,0) AS final_unit_rate FROM standard_cost_item_revision r LEFT JOIN (SELECT cm.cost_item_revision_id,SUM(cm.quantity_per_item_unit*rh.unit_rate) total FROM cost_item_material cm LEFT JOIN material_rate_history rh ON rh.material_variant_id=cm.material_variant_id AND rh.is_current=1 GROUP BY cm.cost_item_revision_id) m ON m.cost_item_revision_id=r.cost_item_revision_id LEFT JOIN (SELECT cl.cost_item_revision_id,SUM(cl.labor_days_per_item_unit*rh.total_with_admin_fee) total FROM cost_item_labor cl LEFT JOIN labor_rate_history rh ON rh.labor_id=cl.labor_id AND rh.is_current=1 GROUP BY cl.cost_item_revision_id) l ON l.cost_item_revision_id=r.cost_item_revision_id LEFT JOIN (SELECT ca.cost_item_revision_id,SUM(CASE WHEN at.allowance_type_code IN ('TOOLS_EQUIPMENT','OTHER_CONSUMABLES','NON_MATERIAL_ACTIVITY_INPUT') THEN ca.amount_per_item_unit ELSE 0 END) total FROM cost_item_resource_allowance ca JOIN ref_resource_allowance_type at ON at.resource_allowance_type_id=ca.resource_allowance_type_id GROUP BY ca.cost_item_revision_id) a ON a.cost_item_revision_id=r.cost_item_revision_id WHERE r.cost_item_revision_id IN (".$id_list.")";$rates=array();foreach($this->db->query($rate_sql)->result()as$row)$rates[(int)$row->cost_item_revision_id]=(float)$row->final_unit_rate;
+		$attributes=array();$rows=$this->db->select("av.cost_item_revision_id,a.attribute_name,CASE WHEN o.option_label IS NOT NULL THEN o.option_label WHEN av.value_text IS NOT NULL THEN av.value_text WHEN av.value_decimal IS NOT NULL THEN CAST(av.value_decimal AS CHAR) WHEN av.value_integer IS NOT NULL THEN CAST(av.value_integer AS CHAR) WHEN av.value_boolean IS NOT NULL THEN IF(av.value_boolean=1,'Yes','No') WHEN av.value_date IS NOT NULL THEN DATE_FORMAT(av.value_date,'%d-%b-%Y') WHEN av.value_min_decimal IS NOT NULL OR av.value_max_decimal IS NOT NULL THEN CONCAT(COALESCE(CAST(av.value_min_decimal AS CHAR),''),' to ',COALESCE(CAST(av.value_max_decimal AS CHAR),'')) ELSE NULL END AS attribute_value,CASE WHEN av.value_decimal IS NOT NULL OR av.value_integer IS NOT NULL OR av.value_min_decimal IS NOT NULL OR av.value_max_decimal IS NOT NULL THEN COALESCE(u.uom_code,a.default_unit_symbol) ELSE NULL END AS unit_symbol",FALSE)->from('cost_item_attribute_value av')->join('ref_attribute_definition a','a.attribute_id=av.attribute_id')->join('ref_attribute_option o','o.attribute_option_id=av.attribute_option_id','left')->join('ref_uom u','u.uom_id=av.uom_id','left')->where_in('av.cost_item_revision_id',$revision_ids)->where('av.is_current',1)->order_by('a.attribute_name')->get()->result();foreach($rows as$row)if($row->attribute_value!==NULL&&$row->attribute_value!=='')$attributes[(int)$row->cost_item_revision_id][]=array('name'=>$row->attribute_name,'value'=>trim($row->attribute_value.($row->unit_symbol?' '.$row->unit_symbol:'')));foreach($items as$item){$item->final_unit_rate=$rates[(int)$item->cost_item_revision_id]??0.0;$item->attribute_values=$attributes[(int)$item->cost_item_revision_id]??array();}return$items;
 	}
 
 	public function find_current($cost_item_id)
 	{
 		$row = $this->db
-			->select('i.*, r.*, d.division_code, d.division_name, sec.section_code, sec.section_name, u3.level3_code, u3.level3_name, u4.level4_code, u4.level4_name, t.trade_code, t.trade_name, mg.material_group_code, mg.material_group_name, sp.specification_source, sp.specification_code, sp.specification_title, sp.edition, u.uom_code, u.uom_name, ac.class_code AS attribute_class_code, ac.class_name AS attribute_class_name')
+			->select('i.*, r.*, pt.project_type_code, pt.project_type_name, pt.project_type_short, ms.market_segment_code, ms.market_segment_name, d.division_code, d.division_name, sec.section_code, sec.section_name, u3.level3_code, u3.level3_name, u4.level4_code, u4.level4_name, t.trade_code, t.trade_name, mg.material_group_code, mg.material_group_name, sp.specification_source, sp.specification_code, sp.specification_title, sp.edition, u.uom_code, u.uom_name, ac.class_code AS attribute_class_code, ac.class_name AS attribute_class_name')
 			->from('standard_cost_item i')->join('standard_cost_item_revision r', 'r.cost_item_id = i.cost_item_id AND r.is_current = 1')
+			->join('ref_project_type pt', 'pt.project_type_id = r.project_type_id')->join('ref_market_segment ms', 'ms.market_segment_id = r.market_segment_id')
 			->join('ref_csi_division d', 'd.division_id = r.division_id', 'left')->join('ref_csi_section sec', 'sec.section_id = r.section_id', 'left')
 			->join('ref_uniformat_level3 u3', 'u3.uniformat_level3_id = r.uniformat_level3_id', 'left')->join('ref_uniformat_level4 u4', 'u4.uniformat_level4_id = r.uniformat_level4_id', 'left')
 			->join('ref_trade t', 't.trade_id = r.trade_id', 'left')->join('ref_material_group mg', 'mg.material_group_id = r.material_group_id', 'left')
@@ -105,6 +109,21 @@ class Standard_cost_item_model extends CI_Model
 	public function reference_exists($table, $key, $id)
 	{
 		return $this->db->where($key, (int) $id)->count_all_results($table) > 0;
+	}
+
+	public function project_market_options()
+	{
+		return $this->db->select("pt.project_type_id, pt.project_type_id AS option_id, CONCAT(pt.project_type_code, ' - ', COALESCE(pt.project_type_short, pt.project_type_name)) AS option_label, ms.market_segment_id, CONCAT(ms.market_segment_code, ' - ', ms.market_segment_name) AS market_segment_label", FALSE)
+			->from('ref_project_type_market_segment pms')->join('ref_project_type pt', 'pt.project_type_id = pms.project_type_id')->join('ref_market_segment ms', 'ms.market_segment_id = pms.market_segment_id')
+			->where('pms.is_active', 1)->where('pt.is_active', 1)->where('ms.is_active', 1)
+			->order_by('pt.project_type_code')->order_by('pms.display_order')->order_by('ms.display_order')->get()->result();
+	}
+
+	public function project_market_pair_exists($project_type_id, $market_segment_id)
+	{
+		return $this->db->from('ref_project_type_market_segment pms')->join('ref_project_type pt', 'pt.project_type_id = pms.project_type_id')->join('ref_market_segment ms', 'ms.market_segment_id = pms.market_segment_id')
+			->where('pms.project_type_id', (int) $project_type_id)->where('pms.market_segment_id', (int) $market_segment_id)
+			->where('pms.is_active', 1)->where('pt.is_active', 1)->where('ms.is_active', 1)->count_all_results() > 0;
 	}
 
 	public function section_belongs_to_division($section_id, $division_id)

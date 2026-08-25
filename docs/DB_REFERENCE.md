@@ -1,6 +1,6 @@
 # Database Reference
 
-Phase 22 additively added crew-derived labor lineage after inspecting the live schema. Backup/recovery operations are documented in `BACKUP_AND_RECOVERY.md` and must target explicitly confirmed databases.
+Phases 22 and 24 additively added crew-derived labor lineage and ML governance foundations after inspecting the live schema. Backup/recovery operations are documented in `BACKUP_AND_RECOVERY.md` and must target explicitly confirmed databases.
 
 Assessment source: updated `nexus_ucd.sql` supplied 12-Aug-2026. The live database now includes two Phase 22 lineage tables in addition to the previously documented base tables; the 17 intended-view placeholders remain unchanged.
 
@@ -31,6 +31,36 @@ Phase 1 created the previously absent local `nexus_ucd` database from the author
 | `app_user_role` | Many-to-many user role assignments | Composite: user, role | FKs user, role, optional assigning user; assignment timestamp |
 
 Phase 4 seeds 8 system roles and 35 permission codes. `SYS_ADMIN` receives every active permission.
+
+## ML Data and Model Governance
+
+| Table | Purpose | Primary Key | Important Relationships / Fields |
+|---|---|---|---|
+| `ml_dataset` | Dataset definition by governed capability | `dataset_id` | Unique code, Extraction/Mapping/Resource Template capability, active state, creator |
+| `ml_dataset_version` | Immutable snapshot lifecycle | `dataset_version_id` | Dataset/version, source cutoff, counts, Draft/Frozen/Approved state, manifest/artifact checksums |
+| `ml_dataset_record` | Canonical source snapshot and label | `dataset_record_id` | Version, source identity, split group, payload/label JSON, review state, record checksum, source lineage IDs |
+| `ml_feedback` | Append-only label review | `feedback_id` | Record, prior/new state, event, comments, actor/time |
+| `ml_job` | Asynchronous export/training/evaluation queue foundation | `ml_job_id` | Type/capability, dataset/model references, idempotency key, state, attempts, result/error |
+| `ml_model_version` | Model registry metadata foundation | `model_version_id` | Model/version/environment/capability, dataset lineage, artifact, feature, and metric metadata |
+| `ml_extraction_run` | Per-import inference or fallback lineage | `extraction_run_id` | Batch, optional model, method/status, request checksum, counts, latency/fallback reason, actor/time |
+| `ml_extraction_prediction` | Reviewable normalized-row proposal | `extraction_prediction_id` | Run and exact staging row, proposal/confidence JSON, review state, applied snapshot, reviewer/time |
+| `ml_extraction_feedback` | Append-only extraction review | `extraction_feedback_id` | Prediction, event/state transition, proposed/applied JSON, comments, actor/time |
+
+Phase 24 implements dataset exports only. Training, evaluation, model mutation, activation, and rollback remain unavailable. Snapshot source IDs are intentionally non-FK lineage so immutable payloads survive separately authorized source cleanup; governance-parent and actor relationships use foreign keys.
+
+Phase 25 adds `ml_extraction_run`, `ml_extraction_prediction`, and `ml_extraction_feedback`. Runs reference the BOQ import batch and optional active model; proposals reference exact staging rows; feedback is append-only. Batch/source cleanup cascades only through these dependent assistance records.
+
+## Elemental Costing
+
+| Table | Purpose | Primary Key | Important Relationships / Fields |
+|---|---|---|---|
+| `ref_elemental_cost_basis` | Governed normalization/direct-amount basis | `elemental_cost_basis_id` | Unique basis code, UOM label, description, display order, active state |
+| `ref_elemental_scope_element` | Optional allowed UniFormat scope by project-market pair | `elemental_scope_element_id` | FK applicability bridge and Level 3; optional Level 4; active state |
+| `elemental_cost_plan` | Project-market elemental plan header | `elemental_cost_plan_id` | Project Type, Market Segment, basis quantity, currency, status, dates, workflow actors |
+| `elemental_cost_plan_element` | Direct elemental amount/rate line | `elemental_cost_plan_element_id` | FK plan, Level 3, optional Level 4, basis, quantity/rate/amount, active state |
+| `elemental_rate_history` | Append-oriented elemental benchmark evidence | `elemental_rate_history_id` | Project-market, Level 3/4, basis, project/location/source, rate, date, current state |
+
+These tables intentionally have no Standard Cost Item foreign key. Elemental scope and values are classified directly by project market and UniFormat.
 
 ## Resource Build-Up and Rates
 
@@ -74,7 +104,9 @@ Phase 4 seeds 8 system roles and 35 permission codes. `SYS_ADMIN` receives every
 
 | Table | Purpose | Primary Key | Important Relationships / Fields |
 |---|---|---|---|
-| `project_master` | Project context for historical rates | `project_id` | Code/name, governed project type/location, legacy location text, floor area/count, dates, status |
+| `project_master` | Project context for historical rates | `project_id` | Code/name, governed Project Type–Market Segment pair, location, legacy location text, floor area/count, dates, status |
+| `ref_market_segment` | Governed project market-segment dictionary | `market_segment_id` | Unique code/name, display order, description, status |
+| `ref_project_type_market_segment` | Project Type–Market Segment applicability hierarchy | `project_type_market_segment_id` | Unique project-type/segment pair, display order, default and active flags |
 | `boq_header` | Project BOQ document | `boq_id` | FK project; unique code, document metadata, currency, revision, status, actors |
 | `boq_item` | Normalized priced BOQ line | `boq_item_id` | FK BOQ and optional UOM; stable line, description, quantity/rate/amount |
 | `boq_import_batch` | Uploaded BOQ import control | `boq_import_batch_id` | FK BOQ; file identity, selected sheet, processing counters, source/parsed total reconciliation, unpriced count, actor/timestamps |
@@ -114,12 +146,23 @@ Phase 4 seeds 8 system roles and 35 permission codes. `SYS_ADMIN` receives every
 | `vw_current_labor_rate` | Current labor rates |
 | `vw_crew_composition` | Flattened crew membership |
 | `vw_uniformat_hierarchy` | Flattened UniFormat levels 1-3 |
+| `vw_project_type_market_segment_hierarchy` | Active Project Type–Market Segment applicability with category/group context |
+| `vw_project_master_classification` | Project classifications including Project Type, Market Segment, category, and group |
 | `vw_cost_item_psmm_classification_mapping` | Item-to-PSMM classification details |
 | `vw_cost_item_psmm_mapping_status` | PSMM mapping/review status |
 | `vw_cost_item_psmm_rule_complete` | Complete mapped PSMM rules |
 | `vw_cost_item_psmm_rule_review` | PSMM rule review data |
 | `vw_cost_item_psmm_rule_summary` | Aggregated PSMM rule coverage |
 | `vw_psmm_effective_rule` | Effective PSMM rules including inheritance |
+| `vw_elemental_classification_hierarchy` | Active UniFormat Level 1–4 elemental hierarchy |
+| `vw_elemental_scope_hierarchy` | Active project-market and allowed UniFormat scope |
+| `vw_elemental_cost_plan_detail` | One row per active direct elemental plan line |
+| `vw_elemental_cost_summary_level3` | Level 3 plan totals |
+| `vw_elemental_cost_plan_total` | Plan grand totals |
+| `vw_elemental_cost_summary` | Plan totals and normalized basis metrics |
+| `vw_elemental_rate_history` | Elemental evidence with hierarchy and scope labels |
+| `vw_elemental_cost_benchmark` | Comparable elemental benchmark aggregates |
+| `vw_elemental_residential_subdivision_socialized` | Current Residential Subdivision / Socialized elemental evidence slice |
 
 ## Stored Procedures
 - `sp_publish_enterprise_cost_code` publishes one ready enterprise cost code.
@@ -132,6 +175,12 @@ Phase 4 seeds 8 system roles and 35 permission codes. `SYS_ADMIN` receives every
 - `standard_cost_item_revision.assembly_id` declares an FK to `ref_uniformat_assembly.assembly_id`, but `ref_uniformat_assembly` is absent from the dump. This must be reconciled against the live authoritative schema before application use or any proposal.
 - The updated dump also adds `standard_cost_item_revision.standard_item_name_id` and references `ref_standard_item_name`, but does not define that table. The column was retained without fabricating the missing target or constraint.
 - Actor fields such as `created_by`, `approved_by`, `action_by`, and `changed_by` are not foreign-keyed to a user table.
-- The local MariaDB instance now contains the 52 authoritative tables and seed data. Its 17 intended views are still empty HeidiSQL placeholder tables pending explicit authorization to replace them.
+- The local MariaDB instance contains the authoritative tables and reference seed data. At the Phase 23 handoff, resource/item master tables are empty and must be populated through governed workflows. Its 17 intended views are still empty HeidiSQL placeholder tables pending explicit authorization to replace them.
 - Phase 22 resolves labor method and crew-member/productivity lineage through `cost_item_labor_build_up` and `cost_item_labor_derivation` without changing existing labor-row semantics.
-- No ML dataset, training-run, model-version, prediction, or feedback tables exist. Their additive design is proposed in `docs/ML_CREW_PRODUCTIVITY_ROADMAP.md` for Phase 24, not authorized by Phase 21.
+- Phase 23 adds no schema objects. Guided creation writes the existing item, revision, code-component, resource, labor-lineage, and audit tables in one transaction.
+- Phase 24 adds the six `ml_*` governance tables and four permission contracts without changing existing business-table definitions.
+- Phase 25 adds reviewed extraction-run, prediction, and feedback lineage. Learned mapping predictions, model training/activation operations, and automatic business actions remain unavailable.
+- `standard_cost_item_revision.project_type_id` and `.market_segment_id` are required and use composite FK `fk_cost_item_revision_project_market` to the unique key in `ref_project_type_market_segment`. The initial 371 revisions were backfilled through stable codes `RES-SUB` and `MKT-004`.
+- `ref_elemental_cost_basis` governs GFA, site, saleable, residential-unit, element-quantity, and direct-amount bases; `ref_elemental_scope_element` optionally confirms UniFormat applicability for a Project Type / Market Segment bridge row.
+- `elemental_cost_plan` is the project-market plan header; `elemental_cost_plan_element` prices UniFormat Level 3/4 directly; `elemental_rate_history` retains append-oriented elemental evidence. None has a Standard Cost Item foreign key.
+- Corrected elemental reporting views join a nullable Level 4 value by its exact ID so a Level 3-only line contributes once rather than once per child sub-element.

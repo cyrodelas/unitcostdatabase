@@ -329,3 +329,63 @@ The existing unit-rate formula costs labor days per item unit and does not use `
 
 Impact:
 Day-based derivation uses member quantity × duration days ÷ output quantity. Hour conversion remains unavailable until hours per workday is governed. Existing unclassified build-ups remain legacy manual until reviewed, and Published revisions are never regenerated in place.
+
+## DEC-034 — Create Initial Cost Items as One Governed Draft
+Decision:
+Create the item identity, revision 01, coding placeholder, materials, exactly one labor method, optional equipment/allowances, lineage, and audit event in one transaction after a server-side preview. Assign a serialized internal `UCD-######` UID while leaving the enterprise code unset and Ready for Code.
+
+Reason:
+Partially saved identity or resource records produce unusable build-ups, while generating an enterprise code during assembly would bypass the separate coding and approval boundary.
+
+Impact:
+Creation requires both Standard Cost Item and Unit Rate management permissions, exactly one primary material, positive manual labor days or valid day-based crew productivity, and one currency across priced resources. It creates only a Draft and does not approve, publish, or map it.
+
+## DEC-035 — Freeze Reviewed Snapshots Before Any ML Work
+Decision:
+Snapshot authoritative source records into canonical payload/label JSON with record and manifest SHA-256 values. Require explicit label review, freeze before export, export asynchronously outside the web root, and require a successful artifact checksum before dataset approval.
+
+Reason:
+Training directly from mutable live tables is not reproducible and can leak rows from one workbook/item across evaluation splits. Model operations also must not hold a PHP web request or accept arbitrary artifact paths.
+
+Impact:
+Approved datasets are immutable, rejected labels are excluded but retain feedback history, split groups travel with every record, and Phase 24 cannot train, activate, or invoke a model. Source IDs are preserved as non-FK lineage because the immutable snapshot must survive separately authorized source cleanup.
+
+## DEC-036 — Review Extraction Proposals Before Staging Mutation
+Decision:
+Run optional extraction inference only over hardened, normalized parser output. Store proposals separately and require a user with both `boq.manage` and `ml.review` to accept, correct, or reject each proposal before commit. Deterministically revalidate every applied field.
+
+Reason:
+Probabilistic extraction must not bypass file safety, numeric/UOM/arithmetic controls, or silently change commercial values. The import workflow must remain available without a model or service.
+
+Impact:
+Missing, timed-out, or invalid inference records an explicit deterministic fallback without confidence scores. Pending proposals block commit; rejected proposals leave staging unchanged; accepted and corrected proposals retain model, request, reviewer, and append-only feedback lineage.
+
+## DEC-037 — Classify Standard Cost Item Revisions by Project Market
+Decision:
+Store Project Type and Market Segment on each Standard Cost Item revision and require the pair to exist in the governed applicability bridge.
+
+Reason:
+The same cost definition may vary by project context, and classification changes must retain revision history instead of rewriting the stable item identity.
+
+Impact:
+Create/edit requires an active applicable pair, successor revisions inherit it, and the baseline dataset is classified as Residential Subdivision / Socialized using stable reference codes.
+
+## DEC-038 — Separate Catalog Administration from Operational Processes
+Decision:
+Reserve Reference Tables and the Material, Equipment, Labor, and Crew catalogs for `SYS_ADMIN` and `UCD_ADMIN`. Present every other system role with a process-specific sidebar and enforce the same restriction during permission resolution and role editing.
+
+Reason:
+Operational users need focused access to their assigned work, while direct catalog maintenance or browsing expands both navigation noise and access beyond their responsibility.
+
+Impact:
+Cost Engineers retain Standard Cost Item development and resource build-up workflows without direct catalog pages. Reviewer, Approver, Project User, Data Analyst, and Executive users receive only their process navigation, while supporting Standard Cost Item access remains available where linked queues, mapping, and intelligence require it.
+
+## DEC-039 — Keep Elemental Costing Independent of Standard Cost Items
+Decision:
+Model elemental plans directly by Project Type, Market Segment, and UniFormat Level 3/4. Do not aggregate Standard Cost Item revisions into elemental plan amounts and do not add an SCI foreign key to elemental cost evidence.
+
+Reason:
+The supplied authoritative schema defines elemental costing as a project-market benchmarking layer whose lines and historical rates are classified directly by UniFormat and a governed cost basis.
+
+Impact:
+SCI remains the governed resource-built unit-rate library for UCD/UPA workflows. Elemental plans use their own scope applicability, direct amount/rate lines, normalized summaries, evidence register, and approval lifecycle. Reporting views must join nullable Level 4 keys exactly so a Level 3-only amount contributes once.

@@ -76,6 +76,22 @@ class Unit_rate_model extends CI_Model
 		return $this->db->where($config['key'],(int)$id)->update($config['table'],$data);
 	}
 
+	public function delete_component($type,$revision_id,$id)
+	{
+		$config=$this->component_config($type);if(!$config)return FALSE;
+		$this->db->where($config['table'].'.cost_item_revision_id',(int)$revision_id)->where($config['key'],(int)$id)->delete($config['table']);
+		return$this->db->affected_rows()===1;
+	}
+
+	public function component_label($type,$revision_id,$id)
+	{
+		if($type==='material')$row=$this->db->select("CONCAT(m.material_code,' — ',m.material_name,' / ',COALESCE(v.material_variant_code,'No variant')) AS component_label",FALSE)->from('cost_item_material c')->join('material_master m','m.material_id=c.material_id')->join('material_variant v','v.material_variant_id=c.material_variant_id','left')->where('c.cost_item_revision_id',(int)$revision_id)->where('c.cost_item_material_id',(int)$id)->get()->row();
+		elseif($type==='labor')$row=$this->db->select("CONCAT(l.labor_code,' — ',l.labor_name) AS component_label",FALSE)->from('cost_item_labor c')->join('labor_master l','l.labor_id=c.labor_id')->where('c.cost_item_revision_id',(int)$revision_id)->where('c.cost_item_labor_id',(int)$id)->get()->row();
+		elseif($type==='equipment')$row=$this->db->select("CONCAT(e.equipment_code,' — ',e.equipment_name) AS component_label",FALSE)->from('cost_item_equipment c')->join('equipment_master e','e.equipment_id=c.equipment_id')->where('c.cost_item_revision_id',(int)$revision_id)->where('c.cost_item_equipment_id',(int)$id)->get()->row();
+		elseif($type==='allowance')$row=$this->db->select("CONCAT(a.allowance_type_code,' — ',a.allowance_type_name) AS component_label",FALSE)->from('cost_item_resource_allowance c')->join('ref_resource_allowance_type a','a.resource_allowance_type_id=c.resource_allowance_type_id')->where('c.cost_item_revision_id',(int)$revision_id)->where('c.cost_item_resource_allowance_id',(int)$id)->get()->row();
+		else return NULL;return$row?$row->component_label:NULL;
+	}
+
 	public function material_variants()
 	{
 		return $this->db->select("v.material_variant_id option_id,CONCAT(m.material_code,' — ',m.material_name,' / ',v.material_variant_code,IF(v.size_description IS NULL,'',CONCAT(' ',v.size_description))) option_label,v.material_id,v.uom_id",FALSE)->from('material_variant v')->join('material_master m','m.material_id=v.material_id')->order_by('m.material_code')->get()->result();

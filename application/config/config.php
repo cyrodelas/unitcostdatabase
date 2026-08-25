@@ -33,7 +33,7 @@ if (ENVIRONMENT === 'production' && ($ucd_encryption_key_required === FALSE || $
 }
 $config['base_url'] = ($ucd_base_url !== FALSE && $ucd_base_url !== '')
 	? rtrim($ucd_base_url, '/').'/'
-	: 'http://172.30.128.49/ucd/';
+	: 'http://localhost/ucd/';
 
 /*
 |--------------------------------------------------------------------------

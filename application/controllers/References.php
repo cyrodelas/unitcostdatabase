@@ -18,7 +18,7 @@ class References extends Authorized_Controller
 	public function index($type = NULL)
 	{
 		if ($type === NULL) {
-			$this->render('references/catalog', array('page_title' => 'Reference Tables', 'page_subtitle' => 'Governed lookup and classification data', 'entities' => $this->entities, 'breadcrumbs' => array(array('label' => 'Reference Tables'))));
+			$this->render('references/catalog', array('page_title' => 'Reference Tables', 'page_subtitle' => 'Governed lookup and classification data grouped by business purpose', 'entities' => $this->entities, 'groups' => $this->config->item('reference_groups') ?: array(), 'breadcrumbs' => array(array('label' => 'Reference Tables'))));
 			return;
 		}
 		$config = $this->entity($type);

@@ -1,7 +1,37 @@
 # Current Phase
-Phase 22 — Crew Productivity Management
+Phase 25 — Reviewed ML-Assisted BOQ Extraction
 
 ## Completed
+- Added an SCI-independent Elemental Costing module for project-market plans, scope applicability, direct UniFormat element pricing, summaries, normalized metrics, append-oriented rate evidence, and Draft-to-Published workflow.
+- Added three elemental permissions across the eight system roles, process-sidebar access, an Elemental Cost Bases reference CRUD, and explicit SCI notices that elemental costs do not use SCI revisions.
+- Corrected the supplied elemental reporting views so Level 3-only plan/rate rows are not duplicated by their Level 4 children.
+- Added governed Market Segment selection and Project Type / Market Segment pair validation to Project Master for elemental-scope consistency.
+- Switched the local application base URL to `http://localhost/ucd/` and the host-specific database connection to `localhost` / `root` with no password.
+- Reworked the sidebar into role-specific processes: Cost Item Development, Technical Review, Approval, Project Delivery, Cost Analysis, and Executive Insights; administrator roles retain the complete application structure.
+- Restricted Reference Tables and Material, Equipment, Labor, and Crew catalogs to `SYS_ADMIN` and `UCD_ADMIN` in live permission resolution, role editing, and database grants.
+- Added required revision-level Project Type and Market Segment classification to Standard Cost Items, governed by the active applicability hierarchy; all 371 existing revisions are classified as Residential Subdivision / Socialized.
+- Added dependent create/edit selectors, invalid-pair validation, register filtering/visibility, detail visibility, database indexing, and a composite foreign key.
+- Added the classification IDs to future ML Resource Template snapshots; existing immutable snapshots remain unchanged.
+- Added allowlisted CRUD for Market Segments, Project Type–Market Segments, and Elemental Cost Bases; all 49 Reference Table cards are grouped into six business-purpose sections without displaying physical table names.
+- Added confirmed Draft-only deletion for Material, Manual Labor, Equipment, and Allowance components in Unit Rate Build-Up, with permission enforcement and crew-derived labor protection.
+- Replaced Coding Status with the calculated Final Unit Rate in the Standard Cost Item register and removed the obsolete Coding Status filter.
+- Expanded the Standard Cost Item register's Standard Item column to show the full standard description, populated descriptive fields, attribute class, and governed typed attribute values.
+- Corrected shared HTML presentation of legacy double-encoded diameter and degree symbols (`Ã˜` / `Â°` to `Ø` / `°`) without mutating authoritative database rows or valid UTF-8 text.
+- Added optional private-service extraction proposals after safe deterministic CSV/XLSX parsing and staging; only normalized fields and minimum batch metadata leave the application boundary.
+- Added explicit deterministic fallback when no active extraction model exists, the service is unconfigured/unavailable, or its response is invalid; fallback carries no fabricated prediction or confidence.
+- Added model/version/request lineage, per-row proposals and confidence, accept/correct/reject review, append-only feedback, and deterministic revalidation of every applied value.
+- Required both `boq.manage` and `ml.review` to apply extraction proposals, and blocked batch commit while any proposal remains pending.
+- Added immutable Extraction, Mapping, and Resource Template dataset definitions and versioned source snapshots with cutoff, canonical JSON, split-group, and SHA-256 lineage.
+- Added human label approve/reject/reopen actions with append-only feedback history; frozen/approved version labels are immutable.
+- Added guarded freeze, manifest checksum, idempotent asynchronous export queue, CLI JSONL worker, artifact SHA-256, and export-before-approval enforcement.
+- Added metadata-only model registry and job foundations without model upload, training, evaluation, inference, activation, rollback, automatic mapping, or governed business-data mutation.
+- Added `ml.view`, `ml.review`, `ml.train`, and reserved `ml.deploy` permissions with the approved built-in role assignments.
+- Added ML Governance screens, sidebar entry, routes, artifact configuration outside the web root, documentation, and operator workflow.
+- Added a permission-gated six-step Standard Cost Item creation workflow for identity, classification/scope, materials, labor method, equipment/allowances, and server-side reconciliation review.
+- Added atomic creation of the stable item UID/sequence, initial revision 01 in `DRAFT` / `READY_FOR_CODE`, coding-component placeholder, all resource rows, labor build-up lineage, and creation audit event.
+- Added exactly-one-primary-material, active-reference, duplicate-resource, positive-quantity/day, valid-date, and single-currency reconciliation controls.
+- Added exclusive Manual or Crew Derived labor assembly; crew-derived creation snapshots productivity, expands members using member count × duration days ÷ output, and creates matching derivation lineage without double counting.
+- Added current-rate preview, missing-rate and unrated-equipment warnings, and explicit boundaries that creation does not code, approve, publish, or map an item.
 - Added governed day-based crew productivity create/edit on current Draft Standard Cost Item revisions with crew, output, duration, source/reference, effective date, benchmark, and notes validation.
 - Added preview-and-apply crew expansion that transactionally replaces labor rows using member quantity × duration days ÷ output quantity and preserves member/rate/formula snapshots.
 - Added explicit Legacy Manual, Manual, and Crew Derived modes; crew-derived labor editing is locked until deliberate Manual conversion, preventing duplicate labor costing.
@@ -20,7 +50,7 @@ Phase 22 — Crew Productivity Management
 - Added atomic import of wholly Ready batches and preserved staging-to-item traceability.
 - Enforced `boq.view` and `boq.manage`; no mapping functionality was added.
 - Reconciled the 12-Aug-2026 updated schema dump without running its destructive `DROP`/`DELETE` statements: added 41 tables, 14 columns, seed/reference data, and valid foreign keys.
-- Expanded Reference Data to 46 CRUD entities, linked catalog cards to CRUD pages, and removed physical table names from the cards.
+- Expanded Reference Data to 48 CRUD entities, linked catalog cards to CRUD pages, grouped the catalog, and removed physical table names from the cards.
 - Updated completed Project, Rate, Material, Standard Cost Item, and Trade workflows for the newly governed fields.
 - Added manual BOQ-to-UCD mapping from each BOQ item to exact standard-cost-item revisions.
 - Added candidate management, selected mapping, Proposed/Confirmed/Rejected workflow, replacement/reopen controls, and append-only mapping history.
@@ -48,12 +78,44 @@ Phase 22 — Crew Productivity Management
 - None.
 
 ## Pending
-- Phase 23: guided Standard Cost Item Draft creation and resource assembly.
-- Phases 24–30: ML data foundation, extraction, mapping, model lifecycle, integration, pilot, monitoring, and release.
+- Phases 26–30: learned mapping, model lifecycle, integration, pilot, monitoring, and release.
 - The 17 database view placeholders still require separate explicit drop authorization.
 - Runtime modernization and any universal audit-event schema require separately approved future scope.
 
 ## Files Changed
+- `database/{elemental_costing_permissions,elemental_costing_fixed_views}.sql`
+- `application/controllers/Elemental_costs.php`
+- `application/models/Elemental_cost_model.php`
+- `application/views/elemental_costs/*`
+- `assets/js/modules/elemental-costing.js`
+- `application/{config/routes.php,config/reference_data.php,views/layouts/sidebar.php}`
+- `application/{controllers/Projects.php,models/Project_model.php,views/projects/form.php,views/projects/view.php}`
+- `database/role_process_visibility.sql`
+- `application/models/Rbac_model.php`
+- `application/controllers/Roles.php`
+- `application/views/{layouts/sidebar,roles/permissions}.php`
+- `database/standard_cost_item_project_market_classification.sql`
+- `application/controllers/Standard_cost_items.php`
+- `application/models/{Standard_cost_item,Ml_governance}_model.php`
+- `application/views/standard_cost_items/{index,create,form,view}.php`
+- `assets/js/modules/cost-item-classification.js`
+- `database/phase25_ml_extraction_schema.sql`
+- `application/{config/ml.php,config/routes.php,controllers/Boq.php,libraries/Ml_extraction_service.php,models/Boq_model.php,views/boq/batch.php}`
+- `docs/{PROJECT_CONTEXT,PHASE_STATUS,MODULE_MAP,DB_REFERENCE,ROUTES,DECISIONS,CHANGELOG,USER_GUIDE,DEPLOYMENT,ML_GOVERNANCE,ML_CREW_PRODUCTIVITY_ROADMAP}.md`
+- `database/phase24_ml_governance_schema.sql`
+- `application/config/ml.php`
+- `application/controllers/{Ml_governance,Ml_worker}.php`
+- `application/models/Ml_governance_model.php`
+- `application/views/ml_governance/*`
+- `application/{config/routes.php,views/layouts/sidebar.php}`
+- `docs/ML_GOVERNANCE.md`
+- `docs/{PROJECT_CONTEXT,PHASE_STATUS,MODULE_MAP,DB_REFERENCE,ROUTES,DECISIONS,CHANGELOG,USER_GUIDE,DEPLOYMENT,ML_CREW_PRODUCTIVITY_ROADMAP}.md`
+- `application/controllers/Standard_cost_items.php`
+- `application/models/Standard_cost_item_assembly_model.php`
+- `application/views/standard_cost_items/{create,index}.php`
+- `assets/js/modules/cost-item-assembly.js`
+- `application/config/routes.php`
+- `docs/{PROJECT_CONTEXT,PHASE_STATUS,MODULE_MAP,ROUTES,DECISIONS,CHANGELOG,USER_GUIDE,ML_CREW_PRODUCTIVITY_ROADMAP}.md`
 - `database/phase22_crew_productivity_schema.sql`
 - `application/controllers/Crew_productivity.php`
 - `application/models/Crew_productivity_model.php`
@@ -113,6 +175,12 @@ Phase 22 — Crew Productivity Management
 - `docs/CHANGELOG.md`
 
 ## Database Changes
+- Added three permission contracts and role grants for Elemental Costing; replaced seven elemental reporting views with cardinality-safe definitions. The destructive cleanup/rebuild statements in the supplied SQL were not executed by this update.
+- Removed reference/resource catalog permission grants from every non-administrator role while preserving the permission definitions and all `SYS_ADMIN` / `UCD_ADMIN` grants.
+- Added required `project_type_id` and `market_segment_id` columns, composite index, and applicability FK to `standard_cost_item_revision`; backfilled 371 existing revisions to the governed `RES-SUB` / `MKT-004` pair without deleting records.
+- Phase 25 additively created `ml_extraction_run`, `ml_extraction_prediction`, and `ml_extraction_feedback`; no existing table, column, permission, role assignment, or business row was changed or removed.
+- Phase 24 additively created `ml_dataset`, `ml_dataset_version`, `ml_dataset_record`, `ml_feedback`, `ml_job`, and `ml_model_version`, plus four permission contracts and approved role assignments. No existing table or business row was dropped, renamed, or recreated.
+- Phase 23 added no tables, columns, indexes, permissions, or persistent verification records. The production workflow writes new governed Drafts only through the existing authoritative schema.
 - Phase 22 additively created `cost_item_labor_build_up` and `cost_item_labor_derivation`; no existing table or row was dropped, renamed, or recreated.
 - Phase 21 added no tables, columns, indexes, permissions, model artifacts, training records, or business records; all schema items remain proposals for later explicit phases.
 - Phase 20 added no tables, columns, indexes, or persistent business records; live index review found no evidence-backed migration requirement.
@@ -128,6 +196,34 @@ Phase 22 — Crew Productivity Management
 - Did not invent the absent `ref_standard_item_name` or `ref_uniformat_assembly` targets referenced by the updated dump.
 
 ## Tests
+- The current release gate passed with all 331 PHP files linted, healthy localhost/database checks, required security headers, and protected support files.
+- Authenticated verification returned HTTP 200 for the elemental plan, create, rate, scope, Project create, Elemental Cost Bases reference, and SCI register pages; the disposable administrator was removed.
+- All seven corrected elemental reporting views passed `CHECK TABLE`; elemental plan/line/rate/scope and disposable-user tables contain no verification rows.
+- Authenticated Elemental Costing plan/create/rates/scope pages, the Elemental Cost Bases reference page, and updated SCI register returned HTTP 200.
+- Disposable integration created scope applicability, a direct-amount element line, rate evidence, and Draft → For Review → Approved → Published transitions, then removed all test records and the test account.
+- A rollback-only Level 3 test produced exactly one detail row and a total of 12,345.67; the supplied view definition had incorrectly produced three rows and 37,037.01 for the same line before correction.
+- Localhost configuration passed PHP lint, connected to `nexus_ucd` as `root` without a password, and returned HTTP 200 with database status `connected` from `/health`.
+- Authenticated all eight system roles against the local authoritative database: both administrators received HTTP 200 for Materials and References; all six operational roles received HTTP 403 and had no corresponding sidebar entries.
+- Each role rendered its intended process heading, the migration was rerunnable, zero orphan grants remained, and all disposable accounts were removed.
+- All 321 PHP files passed lint. The configured LAN URL was unavailable during the final release-URL probe; authenticated functional checks ran through a temporary local PHP endpoint against the same XAMPP database service.
+- Re-ran the additive migration successfully; 371/371 revisions are Residential Subdivision / Socialized, zero classifications are missing, and zero rows have an invalid active pair.
+- Authenticated register, create, and detail requests returned HTTP 200 and rendered Project Type / Market Segment controls and stable codes; the disposable administrator was removed.
+- The release gate passed with all 321 PHP files linted.
+- The grouped Reference catalog and both new CRUD indexes returned HTTP 200; disposable Market Segment and hierarchy records passed create/edit/status workflows, all 48 entities were assigned exactly once across five groups, and verification data/account cleanup completed.
+- All four Unit Rate component confirmation/deletion flows returned HTTP 200 and removed only their disposable rows; a view-only user received HTTP 403, crew-derived labor deletion returned HTTP 409 and retained its row, and all test records/accounts were removed.
+- The Standard Cost Item register returned HTTP 200, omitted the Coding Status column/filter, and matched the detail page's `32,554.39` Final Unit Rate for a governed revision; the disposable account was removed.
+- The Standard Cost Item register returned HTTP 200 and displayed a complete description, built-in work/size attributes, and a disposable governed dynamic attribute; all verification records and accounts were removed.
+- Authenticated Material views returned HTTP 200 and displayed `100mmØ` and `45°` without their mojibake sequences; the disposable verification account was removed.
+- Phase 25 verified no-model deterministic fallback, proposal recording, accept/correct/reject review, append-only feedback, deterministic revalidation, pending-review commit blocking, and successful commit after complete review.
+- Phase 25 HTTP verification returned 200 for the prediction review UI, 403 for a BOQ manager without `ml.review`, and 200 after an authorized review; all disposable data was removed.
+- The Phase 25 migration reran idempotently, all three extraction-assistance tables are empty after verification, and the release gate/lint passed all 320 application PHP files.
+- Phase 24 blocked freezing an empty version, approved a disposable label, appended feedback, froze the version, queued one idempotent export, and produced one manifest plus one approved JSONL record.
+- The CLI worker claimed the queued job once, recorded SUCCEEDED/attempt 1, wrote outside the web root, and persisted matching 64-character manifest/artifact SHA-256 values; dataset approval succeeded only after export.
+- Extraction, Mapping, and Resource Template snapshot queries each executed successfully against the current empty-source baseline and produced valid zero-record Draft versions; empty freeze remained blocked.
+- `SYS_ADMIN` received HTTP 200 for ML Governance while `PROJECT_USER` received HTTP 403. Disposable users, datasets, versions, records, feedback, jobs, artifacts, and verification code were removed.
+- Phase 23 Manual assembly created an atomic Draft with one material, one manual labor row, one allowance, one coding component, one Manual build-up header, and one audit event; preview Final Unit Rate was 310.00.
+- Phase 23 Crew Derived assembly created one productivity, labor, and derivation row with `2 × 2 ÷ 10 = 0.4` labor days per item unit, zero stale state, and preview Final Unit Rate 290.00.
+- The authenticated create route returned HTTP 200. All disposable item/master/crew/user records and the CLI verification harness were removed; no orphan derivations remain.
 - Phase 22 disposable HTTP integration returned 200 for productivity create, save, preview, apply, stale display, Manual conversion, and resumed manual labor editing; crew-derived direct labor editing returned HTTP 409.
 - Applied crew expansion created three labor and three derivation rows with zero formula variance, then Manual conversion retained the labor rows and removed all derivation rows; all disposable records were removed.
 - A `PROJECT_USER` without `unit_rates.manage` received HTTP 403 for productivity creation; schema checks found no orphan lineage rows, all 309 PHP files passed lint/release checks, and no disposable users/items remained.
@@ -173,6 +269,7 @@ Phase 22 — Crew Productivity Management
 - A disposable forced-change account remained confined to `account/password`; other protected pages redirected. The account was removed after testing.
 
 ## Issues
+- The live schema currently has 371 `standard_cost_item` identities but zero `standard_cost_item_revision` rows after the external schema update; the SCI register is therefore empty until authoritative revision data is restored or recreated. This update did not fabricate revisions.
 - `project_master` is empty, so a project must be created before the first persistent BOQ.
 - PhpSpreadsheet was not installed because Composer reported active security advisories for the PHP 7.4-compatible release; the local parser reads cached values without evaluating spreadsheet formulas.
 - Git CLI and Node/npm are not available on PATH.
@@ -180,4 +277,4 @@ Phase 22 — Crew Productivity Management
 - The authoritative schema has no universal audit-event table; current governed workflows retain their specific append-only histories.
 
 ## Next Recommended Step
-- No further implementation phase is defined. Use `docs/RELEASE_CHECKLIST.md`; any new work requires explicit scope.
+- Phase 26 only when explicitly requested: learned BOQ-to-UCD mapping proposals with human confirmation remaining mandatory.

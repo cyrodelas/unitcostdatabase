@@ -9,6 +9,7 @@ class Standard_cost_items extends Authorized_Controller
 	{
 		parent::__construct();
 		$this->load->model('Standard_cost_item_model');
+		$this->load->model('Standard_cost_item_assembly_model');
 		$this->load->model('Governance_model');
 		$this->load->library('form_validation');
 	}
@@ -18,10 +19,29 @@ class Standard_cost_items extends Authorized_Controller
 		$this->render('standard_cost_items/index', array(
 			'page_title' => 'Standard Cost Items', 'page_subtitle' => 'Enterprise cost codes, classifications, revisions, and governance state',
 			'items' => $this->Standard_cost_item_model->all_current(),
+			'can_create' => in_array('standard_cost_items.manage', $this->current_permissions, TRUE) && in_array('unit_rates.manage', $this->current_permissions, TRUE),
 			'page_styles' => array('assets/plugins/datatables/css/dataTables.bootstrap5.min.css'),
 			'page_scripts' => array('assets/plugins/datatables/js/dataTables.min.js', 'assets/plugins/datatables/js/dataTables.bootstrap5.min.js', 'assets/js/modules/master-data.js'),
 			'breadcrumbs' => array(array('label' => 'Standard Cost Items')),
 		));
+	}
+
+	public function create()
+	{
+		$this->authorize('standard_cost_items.manage');
+		$this->authorize('unit_rates.manage');
+		$form_error=NULL;$preview=NULL;$this->set_revision_rules();
+		if($this->input->method(TRUE)==='POST'&&$this->form_validation->run()){
+			$revision=$this->revision_data();
+			if(!$this->valid_references($revision))$form_error='One or more selected classifications or references are invalid.';
+			elseif(!$this->Standard_cost_item_model->project_market_pair_exists($revision['project_type_id'],$revision['market_segment_id']))$form_error='The selected Market Segment is not applicable to the selected Project Type.';
+			elseif(!$this->Standard_cost_item_model->section_belongs_to_division($revision['section_id'],$revision['division_id']))$form_error='The CSI section does not belong to the selected division.';
+			elseif($revision['uniformat_level4_id']!==NULL&&!$this->Standard_cost_item_model->level4_belongs_to_level3($revision['uniformat_level4_id'],$revision['uniformat_level3_id']))$form_error='The UniFormat level 4 value does not belong to the selected level 3 value.';
+			elseif(!$this->valid_date_value($revision['effective_from'])||!$this->valid_date_value($revision['effective_to']))$form_error='Effective dates must be valid calendar dates.';
+			elseif($revision['effective_from']&&$revision['effective_to']&&$revision['effective_to']<$revision['effective_from'])$form_error='Effective To cannot be earlier than Effective From.';
+			else{$preview=$this->Standard_cost_item_assembly_model->normalize_resources($this->input->post(NULL,TRUE),(int)$revision['uom_id']);if($preview['error'])$form_error=$preview['error'];elseif($this->input->post('assembly_action')==='save'){$saved=$this->Standard_cost_item_assembly_model->create_draft($revision,$preview,$this->current_user->user_id);if(empty($saved['error'])){$this->session->set_flashdata('cost_item_success','Draft '.$saved['uid'].' created with its resource build-up.');redirect('standard-cost-items/'.$saved['cost_item_id']);}$form_error=$saved['error'];}}
+		}
+		$this->render('standard_cost_items/create',array('page_title'=>'Create Standard Cost Item','page_subtitle'=>'Guided Draft and resource assembly','options'=>$this->form_options(),'resources'=>$this->Standard_cost_item_assembly_model->options(),'form_error'=>$form_error,'preview'=>$preview,'page_scripts'=>array('assets/js/modules/cost-item-classification.js','assets/js/modules/cost-item-assembly.js'),'breadcrumbs'=>array(array('label'=>'Standard Cost Items','url'=>site_url('standard-cost-items')),array('label'=>'Create Draft'))));
 	}
 
 	public function view($cost_item_id)
@@ -49,25 +69,32 @@ class Standard_cost_items extends Authorized_Controller
 		$item = $this->item_or_404($cost_item_id);
 		if ($item->revision_status !== 'DRAFT') show_error('Only current draft revisions can be edited.', 409, 'Revision Locked');
 		$form_error = NULL;
-		$required_text = array('standard_item_name' => array('Standard item name', 255), 'standard_description' => array('Standard description', NULL));
-		foreach ($required_text as $field => $definition) $this->form_validation->set_rules($field, $definition[0], 'trim|required'.($definition[1] ? '|max_length['.$definition[1].']' : ''));
-		foreach (array('work_type' => 150, 'strength_grade' => 100, 'size_dimension' => 150, 'application_element' => 200, 'finish_condition' => 200) as $field => $max) $this->form_validation->set_rules($field, ucwords(str_replace('_', ' ', $field)), 'trim|max_length['.$max.']');
-		foreach (array('measurement_basis', 'included_work', 'excluded_work', 'change_reason') as $field) $this->form_validation->set_rules($field, ucwords(str_replace('_', ' ', $field)), 'trim');
-		foreach (array('division_id', 'section_id', 'uniformat_level3_id', 'trade_id', 'uom_id') as $field) $this->form_validation->set_rules($field, ucwords(str_replace('_', ' ', $field)), 'trim|required|integer');
-		foreach (array('uniformat_level4_id', 'material_group_id', 'specification_id', 'attribute_subject_class_id') as $field) $this->form_validation->set_rules($field, ucwords(str_replace('_', ' ', $field)), 'trim|integer');
-		foreach (array('effective_from', 'effective_to') as $field) $this->form_validation->set_rules($field, ucwords(str_replace('_', ' ', $field)), 'trim|regex_match[/^\d{4}-\d{2}-\d{2}$/]');
+		$this->set_revision_rules();
 
 		if ($this->input->method(TRUE) === 'POST' && $this->form_validation->run()) {
 			$data = $this->revision_data();
 			if (!$this->valid_references($data)) $form_error = 'One or more selected classifications or references are invalid.';
+			elseif (!$this->Standard_cost_item_model->project_market_pair_exists($data['project_type_id'], $data['market_segment_id'])) $form_error = 'The selected Market Segment is not applicable to the selected Project Type.';
 			elseif (!$this->Standard_cost_item_model->section_belongs_to_division($data['section_id'], $data['division_id'])) $form_error = 'The CSI section does not belong to the selected division.';
 			elseif ($data['uniformat_level4_id'] !== NULL && !$this->Standard_cost_item_model->level4_belongs_to_level3($data['uniformat_level4_id'], $data['uniformat_level3_id'])) $form_error = 'The UniFormat level 4 value does not belong to the selected level 3 value.';
+			elseif (!$this->valid_date_value($data['effective_from']) || !$this->valid_date_value($data['effective_to'])) $form_error = 'Effective dates must be valid calendar dates.';
 			elseif ($data['effective_from'] && $data['effective_to'] && $data['effective_to'] < $data['effective_from']) $form_error = 'Effective To cannot be earlier than Effective From.';
 			elseif ($this->Standard_cost_item_model->update_draft($item->cost_item_revision_id, $data)) { $this->session->set_flashdata('cost_item_success', 'Draft standard cost item updated successfully.'); redirect('standard-cost-items/'.$cost_item_id); }
 			else $form_error = 'Unable to update the draft revision.';
 		}
 
-		$this->render('standard_cost_items/form', array('page_title' => 'Edit Standard Cost Item', 'page_subtitle' => $item->enterprise_cost_code ?: $item->cost_item_uid, 'item' => $item, 'options' => $this->form_options(), 'form_error' => $form_error, 'breadcrumbs' => array(array('label' => 'Standard Cost Items', 'url' => site_url('standard-cost-items')), array('label' => $item->enterprise_cost_code ?: $item->cost_item_uid, 'url' => site_url('standard-cost-items/'.$cost_item_id)), array('label' => 'Edit Draft'))));
+		$this->render('standard_cost_items/form', array('page_title' => 'Edit Standard Cost Item', 'page_subtitle' => $item->enterprise_cost_code ?: $item->cost_item_uid, 'item' => $item, 'options' => $this->form_options(), 'form_error' => $form_error, 'page_scripts' => array('assets/js/modules/cost-item-classification.js'), 'breadcrumbs' => array(array('label' => 'Standard Cost Items', 'url' => site_url('standard-cost-items')), array('label' => $item->enterprise_cost_code ?: $item->cost_item_uid, 'url' => site_url('standard-cost-items/'.$cost_item_id)), array('label' => 'Edit Draft'))));
+	}
+
+	private function set_revision_rules()
+	{
+		$required_text=array('standard_item_name'=>array('Standard item name',255),'standard_description'=>array('Standard description',NULL));
+		foreach($required_text as$field=>$definition)$this->form_validation->set_rules($field,$definition[0],'trim|required'.($definition[1]?'|max_length['.$definition[1].']':''));
+		foreach(array('work_type'=>150,'strength_grade'=>100,'size_dimension'=>150,'application_element'=>200,'finish_condition'=>200)as$field=>$max)$this->form_validation->set_rules($field,ucwords(str_replace('_',' ',$field)),'trim|max_length['.$max.']');
+		foreach(array('measurement_basis','included_work','excluded_work','change_reason')as$field)$this->form_validation->set_rules($field,ucwords(str_replace('_',' ',$field)),'trim');
+		foreach(array('project_type_id','market_segment_id','division_id','section_id','uniformat_level3_id','trade_id','uom_id')as$field)$this->form_validation->set_rules($field,ucwords(str_replace('_',' ',$field)),'trim|required|integer');
+		foreach(array('uniformat_level4_id','material_group_id','specification_id','attribute_subject_class_id')as$field)$this->form_validation->set_rules($field,ucwords(str_replace('_',' ',$field)),'trim|integer');
+		foreach(array('effective_from','effective_to')as$field)$this->form_validation->set_rules($field,ucwords(str_replace('_',' ',$field)),'trim|regex_match[/^\d{4}-\d{2}-\d{2}$/]');
 	}
 
 	public function lifecycle($cost_item_id)
@@ -85,7 +112,7 @@ class Standard_cost_items extends Authorized_Controller
 	{
 		$data = array();
 		foreach (array('standard_item_name', 'standard_description', 'work_type', 'strength_grade', 'size_dimension', 'application_element', 'finish_condition', 'measurement_basis', 'included_work', 'excluded_work', 'change_reason', 'effective_from', 'effective_to') as $field) $data[$field] = $this->nullable_text($field);
-		foreach (array('division_id', 'section_id', 'uniformat_level3_id', 'uniformat_level4_id', 'trade_id', 'material_group_id', 'specification_id', 'uom_id', 'attribute_subject_class_id') as $field) $data[$field] = $this->nullable_id($field);
+		foreach (array('project_type_id', 'market_segment_id', 'division_id', 'section_id', 'uniformat_level3_id', 'uniformat_level4_id', 'trade_id', 'material_group_id', 'specification_id', 'uom_id', 'attribute_subject_class_id') as $field) $data[$field] = $this->nullable_id($field);
 		return $data;
 	}
 
@@ -99,7 +126,9 @@ class Standard_cost_items extends Authorized_Controller
 	private function form_options()
 	{
 		$m = $this->Standard_cost_item_model;
+		$pairs = $m->project_market_options(); $project_types = array(); foreach ($pairs as $pair) $project_types[$pair->project_type_id] = (object) array('option_id' => $pair->project_type_id, 'option_label' => $pair->option_label);
 		return array(
+			'project_types' => array_values($project_types), 'project_market_segments' => $pairs,
 			'divisions' => $m->options('ref_csi_division', 'division_id', "CONCAT(division_code, ' — ', division_name)"), 'sections' => $m->options('ref_csi_section', 'section_id', "CONCAT(section_code, ' — ', section_name)"),
 			'uniformat3' => $m->options('ref_uniformat_level3', 'uniformat_level3_id', "CONCAT(level3_code, ' — ', level3_name)"), 'uniformat4' => $m->options('ref_uniformat_level4', 'uniformat_level4_id', "CONCAT(level4_code, ' — ', level4_name)"),
 			'trades' => $m->options('ref_trade', 'trade_id', "CONCAT(trade_code, ' — ', trade_name)"), 'material_groups' => $m->options('ref_material_group', 'material_group_id', "CONCAT(material_group_code, ' — ', material_group_name)"),
@@ -110,5 +139,6 @@ class Standard_cost_items extends Authorized_Controller
 
 	private function nullable_text($field) { $value = trim((string) $this->input->post($field, TRUE)); return $value === '' ? NULL : $value; }
 	private function nullable_id($field) { $value = trim((string) $this->input->post($field, TRUE)); return $value === '' ? NULL : (int) $value; }
+	private function valid_date_value($value) { if ($value === NULL || $value === '') return TRUE; $date = DateTime::createFromFormat('!Y-m-d', $value); return $date && $date->format('Y-m-d') === $value; }
 	private function item_or_404($cost_item_id) { $item = $this->Standard_cost_item_model->find_current($cost_item_id); if ($item === NULL) show_404(); return $item; }
 }

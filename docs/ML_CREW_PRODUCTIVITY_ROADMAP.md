@@ -1,12 +1,14 @@
 # ML, Crew Productivity, and Resource Assembly Roadmap
 
-Status: Phase 22 implemented (13-Aug-2026); Phase 23 is next
+Status: Phases 22–25 implemented (17-Aug-2026); Phase 26 is next
 
 ## Objective
 
 Extend Project Nexus UCD with governed crew-productivity management, guided Standard Cost Item resource assembly, ML-assisted BOQ extraction, and learned BOQ-to-UCD mapping. CodeIgniter and MySQL remain authoritative for users, workflow, validation, and business records. ML may recommend or prefill work but may not bypass validation, authorization, revision governance, or human mapping confirmation.
 
 ## Current Readiness
+
+The counts below are the Phase 21 readiness snapshot. At the Phase 23 handoff, the connected database retains reference data but its resource/item master tables are empty, so governed masters and rates must be populated before operational Draft assembly or ML dataset work.
 
 The live authoritative database was inspected without modification.
 
@@ -197,9 +199,9 @@ Threshold values are baselined in the pilot; the following gates are mandatory:
 
 Promotion sequence: offline evaluation -> shadow mode -> visible suggestions -> authorized proposal creation -> controlled production. Automatic mapping confirmation is prohibited by the current governance decision.
 
-## Schema Impact Proposal
+## Schema Implementation Status
 
-No Phase 21 database change is authorized or executed. Phase 22 must prepare additive, reversible migrations after re-inspecting the live schema.
+Phase 22 implemented labor lineage. Phase 24 implemented immutable datasets, feedback, jobs, and registry metadata. Phase 25 implemented reviewed extraction runs, row proposals, and append-only extraction feedback; mapping prediction entities remain for Phase 26.
 
 ### Crew/labor lineage entities
 
@@ -228,9 +230,9 @@ Existing `boq_mapping_candidate` already supports `AI` source, score, rank, and 
 - Dataset and model artifacts store paths and checksums, not arbitrary executable uploads through the web UI.
 - Destructive cleanup, retention periods, and any cascade behavior require explicit approval.
 
-## Permission Proposal
+## Permission Implementation
 
-New permission codes are application contracts and must be added only in the authorized migration phase.
+Phase 24 added the following application permission contracts and default built-in-role assignments. `ml.deploy` remains reserved because no model activation endpoint exists yet.
 
 | Capability | Proposed permission | Default roles |
 |---|---|---|

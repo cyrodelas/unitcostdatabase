@@ -31,7 +31,19 @@ class MY_Controller extends CI_Controller
 		$data['current_user'] = $this->current_user;
 		$data['current_permissions'] = $this->current_permissions;
 		$data['current_roles'] = $this->current_roles;
-		$this->load->view('layouts/main', $data);
+		$html = $this->load->view('layouts/main', $data, TRUE);
+		$this->output->set_output($this->normalize_legacy_symbols($html));
+	}
+
+	protected function normalize_legacy_symbols($text)
+	{
+		// The source dataset contains these two symbols double-encoded as UTF-8.
+		// Repair presentation only; correctly encoded text and authoritative rows stay unchanged.
+		return str_replace(
+			array("\xC3\x83\xCB\x9C", "\xC3\x82\xC2\xB0"),
+			array("\xC3\x98", "\xC2\xB0"),
+			(string) $text
+		);
 	}
 }
 

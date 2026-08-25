@@ -1,13 +1,3 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
-<div class="row g-3">
-	<?php foreach ($entities as $type => $entity): ?>
-		<div class="col-md-6 col-xl-4">
-			<a class="card reference-card h-100 text-decoration-none shadow-sm" href="<?= site_url('references/'.$type) ?>">
-				<div class="card-body d-flex align-items-center gap-3">
-					<span class="reference-card-icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
-					<div><h2 class="h6 text-body mb-0"><?= html_escape($entity['title']) ?></h2></div>
-				</div>
-			</a>
-		</div>
-	<?php endforeach; ?>
-</div>
+<?php $rendered=array();foreach($groups as$group_name=>$types):?><section class="mb-4"><div class="d-flex align-items-center gap-2 mb-3"><i class="bi bi-folder2-open text-primary" aria-hidden="true"></i><h2 class="h5 mb-0"><?=html_escape($group_name)?></h2></div><div class="row g-3"><?php foreach($types as$type):if(!isset($entities[$type]))continue;$entity=$entities[$type];$rendered[$type]=TRUE;?><div class="col-md-6 col-xl-4"><a class="card reference-card h-100 text-decoration-none shadow-sm" href="<?=site_url('references/'.$type)?>"><div class="card-body d-flex align-items-center gap-3"><span class="reference-card-icon"><i class="bi bi-tags" aria-hidden="true"></i></span><div><h3 class="h6 text-body mb-0"><?=html_escape($entity['title'])?></h3></div></div></a></div><?php endforeach;?></div></section><?php endforeach;?>
+<?php $remaining=array_diff_key($entities,$rendered);if($remaining):?><section class="mb-4"><h2 class="h5 mb-3">Other Reference Data</h2><div class="row g-3"><?php foreach($remaining as$type=>$entity):?><div class="col-md-6 col-xl-4"><a class="card reference-card h-100 text-decoration-none shadow-sm" href="<?=site_url('references/'.$type)?>"><div class="card-body d-flex align-items-center gap-3"><span class="reference-card-icon"><i class="bi bi-tags" aria-hidden="true"></i></span><div><h3 class="h6 text-body mb-0"><?=html_escape($entity['title'])?></h3></div></div></a></div><?php endforeach;?></div></section><?php endif;?>

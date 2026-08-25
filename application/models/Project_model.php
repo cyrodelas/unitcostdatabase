@@ -5,12 +5,12 @@ class Project_model extends CI_Model
 {
 	public function all_projects()
 	{
-		return $this->db->select('p.*,pt.project_type_name,COALESCE(pt.project_type_name,p.project_type) AS project_type,l.location_name,COALESCE(l.location_name,p.city) AS city,COUNT(rh.rate_history_id) AS observation_count',FALSE)->from('project_master p')->join('ref_project_type pt','pt.project_type_id=p.project_type_id','left')->join('ref_location l','l.location_id=p.location_id','left')->join('cost_item_rate_history rh','rh.project_id=p.project_id','left')->group_by('p.project_id')->order_by('p.is_active','DESC')->order_by('p.project_code')->get()->result();
+		return $this->db->select('p.*,pt.project_type_name,ms.market_segment_name,COALESCE(pt.project_type_name,p.project_type) AS project_type,l.location_name,COALESCE(l.location_name,p.city) AS city,COUNT(rh.rate_history_id) AS observation_count',FALSE)->from('project_master p')->join('ref_project_type pt','pt.project_type_id=p.project_type_id','left')->join('ref_market_segment ms','ms.market_segment_id=p.market_segment_id','left')->join('ref_location l','l.location_id=p.location_id','left')->join('cost_item_rate_history rh','rh.project_id=p.project_id','left')->group_by('p.project_id')->order_by('p.is_active','DESC')->order_by('p.project_code')->get()->result();
 	}
 
 	public function find($project_id)
 	{
-		$row=$this->db->select('p.*,pt.project_type_code,pt.project_type_name,COALESCE(pt.project_type_name,p.project_type) AS project_type,l.psgc_code,l.location_name,COALESCE(l.location_name,p.city) AS city,ll.level_name',FALSE)->from('project_master p')->join('ref_project_type pt','pt.project_type_id=p.project_type_id','left')->join('ref_location l','l.location_id=p.location_id','left')->join('ref_location_level ll','ll.location_level_id=l.location_level_id','left')->where('p.project_id',(int)$project_id)->get()->row();
+		$row=$this->db->select('p.*,pt.project_type_code,pt.project_type_name,ms.market_segment_code,ms.market_segment_name,COALESCE(pt.project_type_name,p.project_type) AS project_type,l.psgc_code,l.location_name,COALESCE(l.location_name,p.city) AS city,ll.level_name',FALSE)->from('project_master p')->join('ref_project_type pt','pt.project_type_id=p.project_type_id','left')->join('ref_market_segment ms','ms.market_segment_id=p.market_segment_id','left')->join('ref_location l','l.location_id=p.location_id','left')->join('ref_location_level ll','ll.location_level_id=l.location_level_id','left')->where('p.project_id',(int)$project_id)->get()->row();
 		return $row?:NULL;
 	}
 
@@ -20,6 +20,8 @@ class Project_model extends CI_Model
 	}
 
 	public function project_types(){return$this->db->select("project_type_id AS option_id,CONCAT(project_type_code,' — ',project_type_name) AS option_label",FALSE)->where('is_active',1)->order_by('project_type_name')->get('ref_project_type')->result();}
+	public function project_market_segments(){return$this->db->select("s.project_type_id,ms.market_segment_id AS option_id,CONCAT(ms.market_segment_code,' - ',ms.market_segment_name) AS option_label",FALSE)->from('ref_project_type_market_segment s')->join('ref_market_segment ms','ms.market_segment_id=s.market_segment_id')->join('ref_project_type pt','pt.project_type_id=s.project_type_id')->where('s.is_active',1)->where('ms.is_active',1)->where('pt.is_active',1)->order_by('s.display_order')->get()->result();}
+	public function project_market_pair_exists($project_type_id,$market_segment_id){return$this->db->where('project_type_id',(int)$project_type_id)->where('market_segment_id',(int)$market_segment_id)->where('is_active',1)->count_all_results('ref_project_type_market_segment')>0;}
 	public function locations(){return$this->db->select("location_id AS option_id,CONCAT(psgc_code,' — ',location_name) AS option_label",FALSE)->where('is_active',1)->order_by('location_name')->get('ref_location')->result();}
 	public function reference_exists($table,$key,$id){return$this->db->where($key,(int)$id)->count_all_results($table)>0;}
 

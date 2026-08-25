@@ -198,3 +198,55 @@
 - Added crew-derived labor preview/application using member quantity × duration days ÷ output and existing current governed labor rates.
 - Prevented labor double counting by locking derived rows until explicit Manual conversion; retained converted labor values while removing derivation lineage.
 - Marked selected build-ups stale after productivity or crew changes and extended governed successor-revision cloning to retain remapped lineage.
+
+## Phase 23 — Guided Standard Cost Item Draft Assembly
+- Added a six-step creation workflow covering identity, governed classifications/scope, materials, Manual or Crew Derived labor, equipment/allowances, and reconciliation preview.
+- Added server validation for active references, duplicates, exactly one primary material, positive quantities/day-based labor, valid dates, rate evidence warnings, and mixed-currency prevention.
+- Added one-transaction creation of the internal UID/sequence, Draft revision 01, Ready-for-Code placeholder, resources, labor method/derivation lineage, and audit event.
+- Preserved coding, approval, publication, BOQ mapping, equipment-rate, and hour-conversion boundaries.
+
+## Phase 24 — ML Data and Governance Foundation
+- Added additive dataset, version, record, feedback, asynchronous job, and model-registry metadata tables plus four role-assigned ML permission contracts.
+- Added capability-specific immutable snapshots for reviewed BOQ extraction rows, confirmed/rejected mapping labels, and governed resource templates with source cutoff, split grouping, canonical JSON, and SHA-256 lineage.
+- Added label review feedback, freeze gates, idempotent export jobs, a CLI JSONL worker, checksum-verified artifacts outside the web root, and export-before-approval enforcement.
+- Added ML Governance screens while deliberately withholding model training, inference, registration actions, activation, rollback, automatic mapping, and authoritative business writes.
+
+## Phase 25 — Reviewed ML-Assisted BOQ Extraction
+- Added an optional, timeout-bounded private-service inference call over safe normalized BOQ rows, with active-model lineage and a strict `extraction-v1` response contract.
+- Added extraction run, row-prediction, and append-only feedback tables plus accept/correct/reject review on the import batch screen.
+- Kept deterministic parsing authoritative, recorded explicit no-confidence fallback reasons, revalidated applied values, and blocked commit until all proposals are reviewed.
+- Enforced combined `boq.manage` and `ml.review` authorization and verified the complete flow using disposable data.
+
+## Post-Phase 25 Encoding Compatibility
+- Added a presentation-only repair for legacy double-encoded diameter and degree symbols while preserving correct UTF-8 content and leaving authoritative database rows unchanged.
+- Verified authenticated Material views render `Ø` and `°` correctly and removed the disposable verification account.
+
+## Post-Phase 25 Standard Item Register Detail
+- Expanded the Standard Item column to show the unabridged standard description plus attribute class, work type, strength/grade, size/dimension, application, finish, and governed typed attribute values.
+- Preserved one row per current revision by loading dynamic attributes separately, and verified built-in and disposable dynamic attributes through the authenticated register.
+- Replaced the register's Coding Status column with Final Unit Rate using the same material, labor, and governed-allowance calculation as the detail page; removed the Coding Status filter.
+- Added confirmation screens and CSRF-protected deletion for Draft Material, Manual Labor, Equipment, and Allowance build-up components; retained the crew-derived labor lock and updated Manual labor lineage transactionally.
+
+## Post-Phase 25 Reference Catalog Expansion
+- Added allowlisted CRUD for the live `ref_market_segment` dictionary and surrogate-keyed Project Type–Market Segment applicability hierarchy.
+- Organized all 48 Reference Table cards into Classification and Standards, Resources and Attributes, Projects and Market Segments, Locations and Demographics, and Rates and Cost Governance groups without exposing table names.
+
+## Post-Phase 25 Standard Cost Item Project-Market Structure
+- Added required Project Type and Market Segment fields to Standard Cost Item revisions with a composite applicability foreign key.
+- Backfilled all 371 existing revisions to Residential Subdivision (`RES-SUB`) / Socialized (`MKT-004`).
+- Added dependent create/edit selection, server validation, register filtering, and item-detail visibility.
+- Included both classification IDs in newly generated ML Resource Template snapshots so future training evidence retains its project-market context.
+
+## Post-Phase 25 Process-Focused Sidebar and RBAC
+- Limited Reference Tables and Material, Equipment, Labor, and Crew catalogs to System and UCD Administrators at both navigation and endpoint levels.
+- Reorganized each operational role around its own Cost Item Development, Technical Review, Approval, Project Delivery, Cost Analysis, or Executive Insights process.
+- Prevented role editing from restoring administrator-only catalog permissions to non-administrator roles.
+
+## Localhost Configuration
+- Changed the local base URL to `http://localhost/ucd/` and local MariaDB connection to `localhost`, user `root`, no password, database `nexus_ucd`.
+
+## SCI-Independent Elemental Costing
+- Added project-market/UniFormat elemental plans, element lines, scope applicability, normalized summaries, historical elemental-rate evidence, permissions, routes, sidebar access, and workflow actions.
+- Kept SCI unit-rate build-ups separate and removed any implied SCI dependency from elemental screens and labels.
+- Corrected Level 3 reporting joins that multiplied one elemental line by its Level 4 child count.
+- Added Project Master Market Segment selection so linked projects can be checked against elemental plan scope.

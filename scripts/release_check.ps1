@@ -1,4 +1,4 @@
-param([string]$BaseUrl = 'http://172.30.128.49/ucd/index.php')
+param([string]$BaseUrl = 'http://localhost/ucd/index.php')
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot

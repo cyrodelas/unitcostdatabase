@@ -6,6 +6,10 @@
 	<div class="card-body">
 		<?php if ($role->role_code === 'SYS_ADMIN'): ?>
 			<div class="alert alert-info" role="alert">System Administrator always receives every active permission.</div>
+		<?php elseif ($role->role_code === 'UCD_ADMIN'): ?>
+			<div class="alert alert-info" role="alert">UCD Administrator may access governed reference and resource master catalogs.</div>
+		<?php else: ?>
+			<div class="alert alert-info" role="alert">Reference Tables and the Material, Equipment, Labor, and Crew master catalogs are administrator-only. This role is limited to its operational process.</div>
 		<?php endif; ?>
 		<?= form_open(current_url()) ?>
 			<div class="row g-3">
@@ -14,9 +18,10 @@
 						<fieldset class="border rounded p-3 h-100">
 							<legend class="float-none w-auto px-2 fs-6 fw-semibold"><?= html_escape($module) ?></legend>
 							<?php foreach ($permissions as $permission): ?>
+								<?php $is_admin_catalog = in_array($permission->permission_code, $administrator_catalog_permissions, TRUE); $is_locked = $role->role_code === 'SYS_ADMIN' || ($is_admin_catalog && $role->role_code !== 'UCD_ADMIN'); ?>
 								<div class="form-check mb-2">
-									<input class="form-check-input" type="checkbox" name="permission_ids[]" value="<?= (int) $permission->permission_id ?>" id="permission_<?= (int) $permission->permission_id ?>" <?= in_array((int) $permission->permission_id, $selected_permission_ids, TRUE) ? 'checked' : '' ?> <?= $role->role_code === 'SYS_ADMIN' ? 'disabled' : '' ?>>
-									<label class="form-check-label" for="permission_<?= (int) $permission->permission_id ?>"><strong><?= html_escape($permission->permission_name) ?></strong><span class="d-block small text-body-secondary"><?= html_escape($permission->permission_code) ?></span></label>
+									<input class="form-check-input" type="checkbox" name="permission_ids[]" value="<?= (int) $permission->permission_id ?>" id="permission_<?= (int) $permission->permission_id ?>" <?= in_array((int) $permission->permission_id, $selected_permission_ids, TRUE) ? 'checked' : '' ?> <?= $is_locked ? 'disabled' : '' ?>>
+									<label class="form-check-label <?= $is_admin_catalog && $role->role_code !== 'UCD_ADMIN' && $role->role_code !== 'SYS_ADMIN' ? 'text-body-secondary' : '' ?>" for="permission_<?= (int) $permission->permission_id ?>"><strong><?= html_escape($permission->permission_name) ?></strong><span class="d-block small text-body-secondary"><?= html_escape($permission->permission_code) ?><?= $is_admin_catalog && $role->role_code !== 'UCD_ADMIN' && $role->role_code !== 'SYS_ADMIN' ? ' · Administrator only' : '' ?></span></label>
 								</div>
 							<?php endforeach; ?>
 						</fieldset>

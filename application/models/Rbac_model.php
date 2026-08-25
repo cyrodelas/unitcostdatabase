@@ -3,9 +3,30 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Rbac_model extends CI_Model
 {
+	private $administrator_catalog_permissions = array(
+		'materials.view', 'materials.manage',
+		'equipment.view', 'equipment.manage',
+		'labor.view', 'labor.manage',
+		'crews.view', 'crews.manage',
+		'references.view', 'references.manage',
+	);
+
+	public function administrator_catalog_permission_codes()
+	{
+		return $this->administrator_catalog_permissions;
+	}
+
 	public function permission_codes_for_user($user_id)
 	{
-		$rows = $this->db
+		$has_administrator_role = $this->db
+			->from('app_user_role ur')
+			->join('app_role r', 'r.role_id = ur.role_id')
+			->where('ur.user_id', (int) $user_id)
+			->where('r.is_active', 1)
+			->where_in('r.role_code', array('SYS_ADMIN', 'UCD_ADMIN'))
+			->count_all_results() > 0;
+
+		$this->db
 			->distinct()
 			->select('p.permission_code')
 			->from('app_permission p')
@@ -14,10 +35,9 @@ class Rbac_model extends CI_Model
 			->join('app_user_role ur', 'ur.role_id = r.role_id')
 			->where('ur.user_id', (int) $user_id)
 			->where('r.is_active', 1)
-			->where('p.is_active', 1)
-			->order_by('p.permission_code')
-			->get()
-			->result_array();
+			->where('p.is_active', 1);
+		if (!$has_administrator_role) $this->db->where_not_in('p.permission_code', $this->administrator_catalog_permissions);
+		$rows = $this->db->order_by('p.permission_code')->get()->result_array();
 
 		return array_column($rows, 'permission_code');
 	}
@@ -100,14 +120,16 @@ class Rbac_model extends CI_Model
 
 	public function sync_role_permissions($role_id, array $permission_ids, $granted_by)
 	{
+		$role = $this->find_role($role_id);
+		if ($role === NULL) return FALSE;
 		$valid_ids = array();
 		if ($permission_ids) {
-			$rows = $this->db
+			$this->db
 				->select('permission_id')
 				->where('is_active', 1)
-				->where_in('permission_id', array_map('intval', $permission_ids))
-				->get('app_permission')
-				->result_array();
+				->where_in('permission_id', array_map('intval', $permission_ids));
+			if (!in_array($role->role_code, array('SYS_ADMIN', 'UCD_ADMIN'), TRUE)) $this->db->where_not_in('permission_code', $this->administrator_catalog_permissions);
+			$rows = $this->db->get('app_permission')->result_array();
 			$valid_ids = array_map('intval', array_column($rows, 'permission_id'));
 		}
 

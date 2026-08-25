@@ -136,6 +136,7 @@ class Roles extends Authorized_Controller
 			'role' => $role,
 			'grouped_permissions' => $grouped_permissions,
 			'selected_permission_ids' => $this->Rbac_model->permission_ids_for_role($role->role_id),
+			'administrator_catalog_permissions' => $this->Rbac_model->administrator_catalog_permission_codes(),
 			'breadcrumbs' => array(array('label' => 'Roles', 'url' => site_url('roles')), array('label' => 'Permissions')),
 		));
 	}
